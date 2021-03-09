@@ -1,0 +1,11 @@
+------------------------------------------------------------
+  Gamelog
+  Listener: Runner2
+  Session Started: 2020.10.23 22:26:14
+------------------------------------------------------------
+[ 2020.10.22 22:26:17 ] (hint) Attempting to join a channel
+[ 2020.10.22 22:26:17 ] (hint) Attempting to join a channel
+[ 2020.10.22 22:26:17 ] (hint) Attempting to join a channel
+[ 2020.10.22 22:26:17 ] (hint) Attempting to join a channel
+
+Do you wish to proceed?

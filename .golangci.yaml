@@ -1,0 +1,5 @@
+# all available settings of specific linters
+linters-settings:
+  govet:
+    disable:
+      - unsafeptr

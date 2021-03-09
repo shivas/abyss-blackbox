@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package combatlog;
+
+option go_package = "github.com/shivas/abyss-blackbox/combatlog";
+
+enum LanguageCode {
+  UNKNOWN = 0;
+  ENGLISH = 1;
+  FRENCH = 2;
+  GERMAN = 3;
+  JAPANESE = 4;
+  KOREAN = 5;
+  RUSSIAN = 6;
+  CHINESE = 7;
+}
+
+message CombatLogRecord {
+  string character_name = 1;
+  repeated string combat_log_lines = 2;
+  LanguageCode language_code = 3;
+}
