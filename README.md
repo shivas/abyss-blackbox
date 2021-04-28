@@ -92,14 +92,11 @@ Later video guide will be available explaining everything in more details.
 Is this allowed by CCP?
 --
  
-This repository open-sourced for this specific reason - to get CCP approval, after it's approved by CCP as `whitelisted` application to use with EVE Online, further development of features will continue:
- 
-* Overlays for streamers (calculate loot values in real time, or final overview of all spawns with damage counters and etc after the run)
-* Kill order of rats with timings and etc.
-* Analytics about frequency of spawns and variations of it.
-* Record if `side loots` are looted or not
-* Etc...
- 
+This repository open-sourced for this specific reason - to get CCP eyes on the code and whitelist/approve.
+
+After creating ticket with support of EVE online I was told by GM that CCP specifically doesn't approve/whitelist any third party software.
+
+It safe to use if it doesn't brake their EULA and other policies, and I'm sure it's not, we are not interacting with EVE client in anyway, just fetching part of window from Windows API. As we know already by many other programs reading of combat log is allowed. We don't touch cache or other stuff, you can read code yourself.
   
 How to contact
 -
