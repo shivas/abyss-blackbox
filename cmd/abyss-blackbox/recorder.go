@@ -189,7 +189,12 @@ func (r *Recorder) Stop() error {
 		r.lootRecords = []*encoding.LootRecord{}
 	}()
 
-	abyssFile := encoding.AbyssRecording{Overview: buf.Bytes(), Loot: r.lootRecords, CombatLog: r.combatlogReader.GetCombatLogRecords(r.charactersTracking)}
+	abyssFile := encoding.AbyssRecording{
+		Overview:   buf.Bytes(),
+		Loot:       r.lootRecords,
+		CombatLog:  r.combatlogReader.GetCombatLogRecords(r.charactersTracking),
+		TestServer: r.config.TestServer,
+	}
 	return abyssFile.Encode(file)
 }
 

@@ -26,6 +26,7 @@ type AbyssRecorderWindow struct {
 	CaptureSettingsGroup    *walk.GroupBox
 	EVEGameLogsFolderLabel  *walk.TextLabel
 	ChooseLogDirButton      *walk.PushButton
+	TestServer              *walk.CheckBox
 }
 
 func NewAbyssRecorderWindow(config interface{}, customWidgetPaintFunc walk.PaintFunc, comboBoxModel []*WindowComboBoxItem) *AbyssRecorderWindow {
@@ -101,6 +102,19 @@ func NewAbyssRecorderWindow(config interface{}, customWidgetPaintFunc walk.Paint
 												},
 											},
 										},
+									},
+								},
+							},
+							GroupBox{
+								Title:     "Server flag",
+								Layout:    VBox{},
+								Alignment: AlignHNearVNear,
+								Children: []Widget{
+									CheckBox{
+										AssignTo:  &obj.TestServer,
+										Text:      "Test Server (Singularity)",
+										Alignment: AlignHNearVNear,
+										Checked:   Bind("TestServer"),
 									},
 								},
 							},

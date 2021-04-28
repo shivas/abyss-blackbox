@@ -42,6 +42,12 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if abyssFile.TestServer {
+		fmt.Println("Recording is from Test server (singularity)")
+	} else {
+		fmt.Println("Recording is from Live server (tranquility)")
+	}
+
 	for _, logRecord := range abyssFile.CombatLog {
 		fmt.Printf("combat log record language for character %q: %s\n", logRecord.CharacterName, logRecord.GetLanguageCode().String())
 		f, err := os.Create(logRecord.CharacterName + ".combatlog.txt")

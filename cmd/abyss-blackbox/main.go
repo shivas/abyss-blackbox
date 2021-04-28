@@ -37,6 +37,7 @@ type captureConfig struct {
 	FilteredPreview      bool
 	EVEClientWindowTitle string
 	EVEGameLogsFolder    string
+	TestServer           bool
 }
 
 func main() {
