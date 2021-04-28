@@ -125,6 +125,7 @@ func main() {
 			armw.CombatLogCharacterGroup.SetEnabled(false)
 			armw.CaptureSettingsGroup.SetEnabled(false)
 			armw.ChooseLogDirButton.SetEnabled(false)
+			armw.TestServer.SetEnabled(false)
 			_ = armw.RecordingButton.SetText("Stop recording")
 
 		} else {
@@ -135,6 +136,7 @@ func main() {
 			armw.CombatLogCharacterGroup.SetEnabled(true)
 			armw.CaptureSettingsGroup.SetEnabled(true)
 			armw.ChooseLogDirButton.SetEnabled(true)
+			armw.TestServer.SetEnabled(true)
 			_ = armw.RecordingButton.SetText("Start recording")
 		}
 	})
