@@ -4,7 +4,7 @@ import "regexp"
 
 //go:generate protoc -I ../protobuf/ --go_opt=module=github.com/shivas/abyss-blackbox --go_out=.. combatlog.proto
 
-// LanguageMatchers holds default initialized regexps for all languages
+// LanguageMatchers holds default initialized regexps for all languages.
 var LanguageMatchers LocalizedMatchers
 
 func init() {
@@ -46,11 +46,11 @@ func init() {
 	}
 }
 
-// LocalizedMatcher holds regexps for language to detect
+// LocalizedMatcher holds regexps for language to detect.
 type LocalizedMatcher struct {
 	ListenerRe     *regexp.Regexp
 	SessionStartRe *regexp.Regexp
 }
 
-// LocalizedMatchers mapping between LanguageCode and LocalizedMatchers
+// LocalizedMatchers mapping between LanguageCode and LocalizedMatchers.
 type LocalizedMatchers map[LanguageCode]LocalizedMatcher

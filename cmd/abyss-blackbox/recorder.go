@@ -18,9 +18,9 @@ import (
 )
 
 const (
-	RECORDER_STOPPED = iota
-	RECORDER_RUNNING
-	RECORDER_AWAITING_INITIAL_LOOT
+	RecorderStopped = iota
+	RecorderRunning
+	RecorderAwaitingInitialLoot
 )
 
 type Recorder struct {
@@ -44,7 +44,7 @@ func NewRecorder(frameChan chan *image.Paletted, c *captureConfig, nc chan Notif
 	return &Recorder{
 		frameChan:           frameChan,
 		loot:                make(chan string, 2),
-		state:               RECORDER_STOPPED,
+		state:               RecorderStopped,
 		config:              c,
 		frames:              make([]*image.Paletted, 0),
 		delays:              make([]int, 0),
@@ -75,7 +75,6 @@ func (r *Recorder) ClipboardListener() {
 // StartLoop starts main recorded loop listening for frames and clipboard changes
 func (r *Recorder) StartLoop() {
 	go func(r *Recorder) {
-
 		for {
 			select {
 			case <-r.done:
@@ -85,13 +84,15 @@ func (r *Recorder) StartLoop() {
 				r.Lock()
 
 				switch r.state {
-				case RECORDER_AWAITING_INITIAL_LOOT:
+				case RecorderAwaitingInitialLoot:
 					r.notificationChannel <- NotificationMessage{Title: "Abyssal.Space recording started...", Message: "Initial cargo received, awaiting cargo after fillament activation"}
-					r.state = RECORDER_RUNNING
+					r.state = RecorderRunning
 					r.lootRecords = append(r.lootRecords, &encoding.LootRecord{Frame: 0, Loot: lootSnapshot})
-				case RECORDER_RUNNING:
+				case RecorderRunning:
 					r.notificationChannel <- NotificationMessage{Title: "Abyssal.Space recorder", Message: "Loot captured from clipboard!"}
+
 					lr := &encoding.LootRecord{Frame: int32(len(r.frames) - 1), Loot: lootSnapshot}
+
 					log.Printf("loot appended: %v\n", lr)
 					r.lootRecords = append(r.lootRecords, lr)
 				default:
@@ -102,7 +103,7 @@ func (r *Recorder) StartLoop() {
 
 			case frame := <-r.frameChan:
 				r.Lock()
-				if r.state == RECORDER_RUNNING { // append to buffer
+				if r.state == RecorderRunning { // append to buffer
 					r.frames = append(r.frames, frame)
 					r.delays = append(r.delays, 10)
 				}
@@ -124,7 +125,7 @@ func (r *Recorder) Start(characters []string) {
 	if os.IsNotExist(err) {
 		err = os.MkdirAll(r.config.Recordings, os.ModeDir)
 		if err != nil {
-			log.Fatalf("could not create folder: %s", r.config.Recordings)
+			log.Fatalf("could not create folder: %s", r.config.Recordings) //nolint:gocritic // it's dead jim
 		}
 	}
 
@@ -134,24 +135,28 @@ func (r *Recorder) Start(characters []string) {
 	// remove log files from tracking
 	for char := range r.charactersTracking {
 		found := false
+
 		for _, selected := range characters {
 			if char == selected {
 				found = true
 				break
 			}
 		}
+
 		if !found {
 			delete(r.charactersTracking, char)
 		}
 	}
+
 	log.Printf("recording characters: %+v\n", r.charactersTracking)
+
 	r.combatlogReader.MarkStartOffsets(r.charactersTracking)
 
 	r.recordingName = filepath.Join(r.config.Recordings, fmt.Sprintf("%s.abyss", time.Now().Format("2006-Jan-2-15-04-05")))
 	r.frames = make([]*image.Paletted, 0)
 	r.delays = make([]int, 0)
 	r.lootRecords = make([]*encoding.LootRecord, 0)
-	r.state = RECORDER_AWAITING_INITIAL_LOOT
+	r.state = RecorderAwaitingInitialLoot
 	r.notificationChannel <- NotificationMessage{Title: "Recording starting...", Message: "CTRL+A, CTRL+C your inventory"}
 }
 
@@ -161,8 +166,8 @@ func (r *Recorder) Stop() error {
 	defer r.Unlock()
 
 	if len(r.frames) == 0 {
-		r.state = RECORDER_STOPPED
-		return fmt.Errorf("There was no frames captured, skipping recording of abyss run")
+		r.state = RecorderStopped
+		return fmt.Errorf("there was no frames captured, skipping recording of abyss run")
 	}
 
 	file, _ := os.Create(r.recordingName)
@@ -172,15 +177,16 @@ func (r *Recorder) Stop() error {
 
 	var buf bytes.Buffer
 
-	r.state = RECORDER_STOPPED
+	r.state = RecorderStopped
 	anim := gif.GIF{Delay: r.delays, LoopCount: -1, Image: r.frames}
+
 	err := gif.EncodeAll(&buf, &anim)
 	if err != nil {
 		return err
 	}
 
 	defer func() {
-		r.notificationChannel <- NotificationMessage{Title: "Abyss recorder", Message: fmt.Sprintf("Abyss run succesfully recorded to file: %s", r.recordingName)}
+		r.notificationChannel <- NotificationMessage{Title: "Abyss recorder", Message: fmt.Sprintf("Abyss run successfully recorded to file: %s", r.recordingName)}
 	}()
 
 	defer func() {
@@ -195,6 +201,7 @@ func (r *Recorder) Stop() error {
 		CombatLog:  r.combatlogReader.GetCombatLogRecords(r.charactersTracking),
 		TestServer: r.config.TestServer,
 	}
+
 	return abyssFile.Encode(file)
 }
 
@@ -207,5 +214,6 @@ func (r *Recorder) StopLoop() {
 func (r *Recorder) Status() int {
 	r.Lock()
 	defer r.Unlock()
+
 	return r.state
 }

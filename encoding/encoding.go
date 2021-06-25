@@ -22,6 +22,7 @@ func (rf *AbyssRecording) Encode(w io.Writer) error {
 	defer gw.Close()
 
 	_, err = io.Copy(gw, bytes.NewReader(data))
+
 	return err
 }
 
@@ -41,5 +42,6 @@ func Decode(r io.Reader) (*AbyssRecording, error) {
 	}
 
 	err = proto.Unmarshal(data, result)
+
 	return result, err
 }

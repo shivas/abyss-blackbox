@@ -27,9 +27,8 @@ func (r *Reader) SetLogFolder(folder string) {
 	r.logDir = folder
 }
 
-// GetLogFiles returns slice of filepaths that logged in in last timeWindow
+// GetLogFiles returns slice of filepaths that logged in in last timeWindow.
 func (r *Reader) GetLogFiles(end time.Time, timeWindow time.Duration) ([]string, error) {
-
 	prefixes := genPrefixes(end, timeWindow)
 
 	logFiles := []string{}
@@ -39,17 +38,18 @@ func (r *Reader) GetLogFiles(end time.Time, timeWindow time.Duration) ([]string,
 		if err != nil {
 			return nil, err
 		}
+
 		logFiles = append(logFiles, matches...)
 	}
 
 	return logFiles, nil
 }
 
-// GetCombatLogRecords reads combatlog from stored offsets and converts to CombatLogRecord struct
+// GetCombatLogRecords reads combatlog from stored offsets and converts to CombatLogRecord struct.
 func (r *Reader) GetCombatLogRecords(characters map[string]CombatLogFile) []*CombatLogRecord {
 	recordings := make([]*CombatLogRecord, 0)
-	for character, logfile := range characters {
 
+	for character, logfile := range characters {
 		startFileInfo, marked := r.startOffsets[character]
 		if !marked {
 			continue
@@ -72,6 +72,7 @@ func (r *Reader) GetCombatLogRecords(characters map[string]CombatLogFile) []*Com
 		for scanner.Scan() {
 			clr.CombatLogLines = append(clr.CombatLogLines, scanner.Text())
 		}
+
 		recordings = append(recordings, clr)
 	}
 
@@ -80,10 +81,9 @@ func (r *Reader) GetCombatLogRecords(characters map[string]CombatLogFile) []*Com
 	return recordings
 }
 
-// MarkStartOffsets stores offsets of combatlog files
+// MarkStartOffsets stores offsets of combatlog files.
 func (r *Reader) MarkStartOffsets(characters map[string]CombatLogFile) {
 	for character, logfile := range characters {
-
 		file, err := os.Open(logfile.Filename)
 		if err != nil {
 			continue
@@ -94,13 +94,13 @@ func (r *Reader) MarkStartOffsets(characters map[string]CombatLogFile) {
 		if err != nil {
 			continue
 		}
+
 		r.startOffsets[character] = fi
 	}
 }
 
-// MapCharactersToFiles maps given paths to characters, detecting combatlog language in process
+// MapCharactersToFiles maps given paths to characters, detecting combatlog language in process.
 func (r *Reader) MapCharactersToFiles(files []string) map[string]CombatLogFile {
-
 	type f struct {
 		sessionStarted *time.Time
 		filename       string
@@ -118,6 +118,7 @@ func (r *Reader) MapCharactersToFiles(files []string) map[string]CombatLogFile {
 		defer file.Close()
 
 		reader := bufio.NewScanner(file)
+
 		var insideBanner bool
 
 		logFile := f{filename: filename}
@@ -128,6 +129,7 @@ func (r *Reader) MapCharactersToFiles(files []string) map[string]CombatLogFile {
 					insideBanner = true
 					continue
 				}
+
 				if insideBanner {
 					break // reading closing header separator, just break
 				}
@@ -136,6 +138,7 @@ func (r *Reader) MapCharactersToFiles(files []string) map[string]CombatLogFile {
 			if insideBanner {
 				listenerText := reader.Text()
 				sessionText := reader.Text()
+
 				for languageCode, matchers := range LanguageMatchers {
 					if matches := matchers.ListenerRe.FindAllStringSubmatch(listenerText, 1); matches != nil {
 						logFile.character = &matches[0][1]
@@ -147,6 +150,7 @@ func (r *Reader) MapCharactersToFiles(files []string) map[string]CombatLogFile {
 						if err != nil {
 							continue
 						}
+
 						logFile.sessionStarted = &sessionStart
 					}
 				}
@@ -162,10 +166,10 @@ func (r *Reader) MapCharactersToFiles(files []string) map[string]CombatLogFile {
 				} else {
 					tempMap[*logFile.character] = logFile
 				}
+
 				break
 			}
 		}
-
 	}
 
 	result := make(map[string]CombatLogFile, len(tempMap))

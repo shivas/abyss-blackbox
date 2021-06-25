@@ -49,6 +49,8 @@ func (c *captureConfig) SetRecorderShortcut(s walk.Shortcut) {
 }
 
 func main() {
+	var err error
+
 	currentSettings, err := readConfig()
 	if err != nil {
 		log.Fatal(err)
@@ -62,6 +64,7 @@ func main() {
 	clr := combatlog.NewReader(currentSettings.EVEGameLogsFolder)
 	recorder = NewRecorder(recordingChannel, currentSettings, notificationChannel, clr)
 	recorder.StartLoop()
+
 	defer recorder.StopLoop()
 
 	foundEVEClientWindows, err := screen.FindWindow(regexp.MustCompile(EVEClientWindowRe))
@@ -71,7 +74,7 @@ func main() {
 		comboModel = append(comboModel, &mainwindow.WindowComboBoxItem{WindowTitle: title, WindowHandle: handle})
 	}
 
-	logFiles, _ := clr.GetLogFiles(time.Now(), time.Duration(24*time.Hour))
+	logFiles, _ := clr.GetLogFiles(time.Now(), time.Duration(24)*time.Hour)
 	charMap := clr.MapCharactersToFiles(logFiles)
 
 	armw := mainwindow.NewAbyssRecorderWindow(currentSettings, drawStuff, comboModel)
@@ -87,7 +90,7 @@ func main() {
 		if accepted {
 			_ = armw.EVEGameLogsFolderLabel.SetText(fd.FilePath)
 			clr.SetLogFolder(fd.FilePath)
-			logFiles, err := clr.GetLogFiles(time.Now(), time.Duration(24*time.Hour))
+			logFiles, err = clr.GetLogFiles(time.Now(), time.Duration(24)*time.Hour)
 			if err != nil {
 				return
 			}
@@ -110,15 +113,16 @@ func main() {
 	}(notificationChannel, notificationIcon)
 
 	recordingButtonHandler := func() {
-		if recorder.Status() == RECORDER_STOPPED {
-
+		if recorder.Status() == RecorderStopped {
 			charsChecked := []string{}
+
 			checkboxes := armw.CombatLogCharacterGroup.Children()
 			for i := 0; i < checkboxes.Len(); i++ {
 				cb, ok := checkboxes.At(i).(*walk.CheckBox)
 				if !ok {
 					continue
 				}
+
 				if cb.Checked() {
 					charsChecked = append(charsChecked, cb.Text())
 				}
@@ -135,9 +139,8 @@ func main() {
 			armw.ChooseLogDirButton.SetEnabled(false)
 			armw.TestServer.SetEnabled(false)
 			_ = armw.RecordingButton.SetText("Stop recording")
-
 		} else {
-			err := recorder.Stop()
+			err = recorder.Stop()
 			if err != nil {
 				walk.MsgBox(armw.MainWindow, "Error writing recording", err.Error(), walk.MsgBoxIconWarning)
 			}
@@ -161,36 +164,35 @@ func main() {
 	shortcutRecorderHandler := func() {
 		if !armw.RecorderShortcutEdit.Enabled() { // start recording
 			armw.RecorderShortcutEdit.SetEnabled(true)
-			armw.RecorderShortcutEdit.SetFocus()
-			armw.RecorderShortcutRecordButton.SetText("Save")
+			_ = armw.RecorderShortcutEdit.SetFocus()
+			_ = armw.RecorderShortcutRecordButton.SetText("Save")
+
 			if !win.UnregisterHotKey(armw.MainWindow.Handle(), 1) {
 				walk.MsgBox(armw.MainWindow, "Failed unregistering hotkey", "failed unregistering key, please restart application", walk.MsgBoxIconWarning)
 				return
 			}
 		} else { // persist new shortcut and rebind
 			armw.RecorderShortcutEdit.SetEnabled(false)
-			armw.RecorderShortcutRecordButton.SetText("Record shortcut")
+			_ = armw.RecorderShortcutRecordButton.SetText("Record shortcut")
 			if !walk.RegisterGlobalHotKey(armw.MainWindow, 1, currentSettings.RecorderShortcut) {
 				walk.MsgBox(armw.MainWindow, "Failed registering new hotkey", "failed registering new shortcut key, please restart application", walk.MsgBoxIconWarning)
 				return
 			}
-			writeConfig(currentSettings)
+			_ = writeConfig(currentSettings)
 		}
 	}
 
 	armw.RecorderShortcutRecordButton.Clicked().Attach(shortcutRecorderHandler)
 
 	go func(cw *walk.CustomWidget) {
-
 		t := time.NewTicker(time.Second)
 
 		for range t.C {
-
-			img, err := screen.CaptureWindowArea(
+			img, errr := screen.CaptureWindowArea(
 				foundEVEClientWindows.GetHandleByTitle(currentSettings.EVEClientWindowTitle),
 				image.Rectangle{Min: image.Point{X: currentSettings.X, Y: currentSettings.Y}, Max: image.Point{X: currentSettings.X + 255, Y: currentSettings.Y + currentSettings.H}},
 			)
-			if err != nil {
+			if errr != nil {
 				walk.MsgBox(armw.MainWindow, "Error capturing window area, restart of application is needed.", err.Error(), walk.MsgBoxIconWarning)
 				fmt.Printf("error lost capture window: %v", err)
 				os.Exit(1) // exit
@@ -212,7 +214,6 @@ func main() {
 				default:
 					log.Println("preview channel full, dropping frame")
 				}
-
 			}
 
 			select {
@@ -223,7 +224,6 @@ func main() {
 
 			win.InvalidateRect(cw.Handle(), nil, false)
 		}
-
 	}(armw.CaptureWidget)
 
 	walk.Clipboard().ContentsChanged().Attach(recorder.ClipboardListener)
@@ -261,6 +261,7 @@ func CreateNotificationIcon(mw *walk.MainWindow) *walk.NotifyIcon {
 	if err := ni.SetIcon(icon); err != nil {
 		log.Fatal(err)
 	}
+
 	if err := ni.SetToolTip("Click for info or use the context menu to exit."); err != nil {
 		log.Fatal(err)
 	}
@@ -272,6 +273,7 @@ func CreateNotificationIcon(mw *walk.MainWindow) *walk.NotifyIcon {
 	}
 
 	exitAction.Triggered().Attach(func() { walk.App().Exit(0) })
+
 	if err := ni.ContextMenu().Actions().Add(exitAction); err != nil {
 		log.Fatal(err)
 	}
@@ -291,6 +293,7 @@ func drawStuff(canvas *walk.Canvas, updateBounds walk.Rectangle) error {
 		if err != nil {
 			return err
 		}
+
 		defer bmp.Dispose()
 
 		err = canvas.DrawImagePixels(bmp, walk.Point{X: 0, Y: 0})
@@ -300,6 +303,7 @@ func drawStuff(canvas *walk.Canvas, updateBounds walk.Rectangle) error {
 	default:
 		return nil
 	}
+
 	return nil
 }
 
@@ -308,22 +312,25 @@ func paletted(img *image.NRGBA, cutoff uint32) *image.Paletted {
 	palette := []color.Color{color.White, color.Black}
 	buffimg := image.NewPaletted(img.Rect, palette)
 
-	var threshold uint32 = cutoff << 8
+	var threshold = cutoff << 8
 
 	for y := 0; y < img.Rect.Dy(); y++ {
 		for x := 0; x < img.Rect.Dx(); x++ {
 			c := img.At(x, y)
 			r, _, _, _ := c.RGBA()
+
 			if r > threshold {
 				buffimg.SetColorIndex(x, y, 0)
 				continue
 			}
+
 			if r <= threshold {
 				buffimg.SetColorIndex(x, y, 1)
 				continue
 			}
 		}
 	}
+
 	return buffimg
 }
 
@@ -335,15 +342,18 @@ func readConfig() (*captureConfig, error) {
 	}
 
 	var c *captureConfig
+
 	load := true
 	settingsFilename := filepath.Join(appDir, "settings.json")
+
 	_, err = os.Stat(settingsFilename)
 	if os.IsNotExist(err) {
 		// fetch current user folder and try to point to Gamelogs folder
-		usr, err := user.Current()
-		if err != nil {
-			return nil, err
+		usr, errr := user.Current()
+		if errr != nil {
+			return nil, errr
 		}
+
 		eveGameLogsFolder := filepath.Join(usr.HomeDir, "Documents", "EVE", "logs", "Gamelogs")
 
 		defaultShortcut := walk.Shortcut{Modifiers: walk.ModControl | walk.ModAlt, Key: walk.KeyEnd}
@@ -384,6 +394,7 @@ func readConfig() (*captureConfig, error) {
 // writeConfig saves configuration to json file
 func writeConfig(c *captureConfig) error {
 	settingsFilename := filepath.Join(c.AppRoot, "settings.json")
+
 	f, err := os.Create(settingsFilename)
 	if err != nil {
 		return err

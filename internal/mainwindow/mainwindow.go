@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/lxn/walk"
-	. "github.com/lxn/walk/declarative"
+	. "github.com/lxn/walk/declarative" // nolint:stylecheck,revive // we needs side effects
 )
 
 type ShortcutSetter interface {
@@ -35,6 +35,7 @@ type AbyssRecorderWindow struct {
 	RecorderShortcutRecordButton *walk.PushButton
 }
 
+// NewAbyssRecorderWindow creates new main window of recorder.
 func NewAbyssRecorderWindow(config interface{}, customWidgetPaintFunc walk.PaintFunc, comboBoxModel []*WindowComboBoxItem) *AbyssRecorderWindow {
 	obj := AbyssRecorderWindow{}
 
@@ -158,7 +159,7 @@ func NewAbyssRecorderWindow(config interface{}, customWidgetPaintFunc walk.Paint
 												AssignTo: &obj.RecorderShortcutEdit,
 												OnKeyPress: func(key walk.Key) {
 													shortcut := walk.Shortcut{Modifiers: walk.ModifiersDown(), Key: key}
-													obj.RecorderShortcutEdit.SetText(shortcut.String())
+													_ = obj.RecorderShortcutEdit.SetText(shortcut.String())
 													c, ok := config.(ShortcutSetter)
 													if ok {
 														c.SetRecorderShortcut(shortcut)

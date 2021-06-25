@@ -19,7 +19,7 @@ func init() {
 	// tell us the scale factor for our monitor so that our screenshot works
 	// on hi-res displays.
 	// PROCESS_PER_MONITOR_DPI_AWARE
-	procSetProcessDpiAwareness.Call(uintptr(2)) // nolint
+	procSetProcessDpiAwareness.Call(uintptr(2)) //nolint:errcheck // no needed
 }
 
 func CaptureWindowArea(handle syscall.Handle, rect image.Rectangle) (image.Image, error) {
@@ -36,12 +36,14 @@ var (
 
 	modGdi32   = syscall.NewLazyDLL("Gdi32.dll")
 	procBitBlt = modGdi32.NewProc("BitBlt")
-	//procCreateCompatibleBitmap = modGdi32.NewProc("CreateCompatibleBitmap")
+
+	// procCreateCompatibleBitmap = modGdi32.NewProc("CreateCompatibleBitmap")
 	procCreateCompatibleDC = modGdi32.NewProc("CreateCompatibleDC")
 	procCreateDIBSection   = modGdi32.NewProc("CreateDIBSection")
 	procDeleteDC           = modGdi32.NewProc("DeleteDC")
 	procDeleteObject       = modGdi32.NewProc("DeleteObject")
-	//procGetDeviceCaps          = modGdi32.NewProc("GetDeviceCaps")
+
+	// procGetDeviceCaps          = modGdi32.NewProc("GetDeviceCaps")
 	procSelectObject = modGdi32.NewProc("SelectObject")
 
 	modShcore                  = syscall.NewLazyDLL("Shcore.dll")
@@ -50,22 +52,22 @@ var (
 
 const (
 	// BitBlt constants
-	bitBlt_SRCCOPY = 0x00CC0020
+	bitBltSRCCOPY = 0x00CC0020
 )
 
 // Windows RECT structure
-type win_RECT struct {
+type winRect struct {
 	Left, Top, Right, Bottom int32
 }
 
 // http://msdn.microsoft.com/en-us/library/windows/desktop/dd183375.aspx
-type win_BITMAPINFO struct {
-	BmiHeader win_BITMAPINFOHEADER
-	BmiColors *win_RGBQUAD
+type winBITMAPINFO struct {
+	BmiHeader winBITMAPINFOHEADER
+	BmiColors *winRGBQUAD
 }
 
 // http://msdn.microsoft.com/en-us/library/windows/desktop/dd183376.aspx
-type win_BITMAPINFOHEADER struct {
+type winBITMAPINFOHEADER struct {
 	BiSize          uint32
 	BiWidth         int32
 	BiHeight        int32
@@ -80,7 +82,7 @@ type win_BITMAPINFOHEADER struct {
 }
 
 // http://msdn.microsoft.com/en-us/library/windows/desktop/dd162938.aspx
-type win_RGBQUAD struct {
+type winRGBQUAD struct {
 	RgbBlue     byte
 	RgbGreen    byte
 	RgbRed      byte
@@ -96,6 +98,7 @@ func (fw FoundWindows) GetHandleByTitle(title string) syscall.Handle {
 			return handle
 		}
 	}
+
 	return 0
 }
 
@@ -104,6 +107,7 @@ func (fw FoundWindows) GetWindowsTitles() []string {
 	for _, wtitle := range fw {
 		result = append(result, wtitle)
 	}
+
 	return result
 }
 
@@ -115,46 +119,51 @@ func FindWindow(title *regexp.Regexp) (FoundWindows, error) {
 		_, err := GetWindowText(h, &b[0], int32(len(b)))
 		if err != nil {
 			// ignore the error
-			return 1 // continue enumeration
+			return 1 // enumeration continue
 		}
 		windowTitle := windows.UTF16ToString(b)
 		if title.Find([]byte(windowTitle)) != nil {
 			// note the window
 			results[h] = windowTitle
-			// return 0 // stop enumeration
 		}
-		return 1 // continue enumeration
+		return 1 // enumeration continue
 	})
+
 	err := enumWindows(cb, 0)
 	if err != nil {
 		return results, err
 	}
+
 	if len(results) == 0 {
-		return results, fmt.Errorf("No window with title '%s' found", title.String())
+		return results, fmt.Errorf("no window with title '%s' found", title.String())
 	}
+
 	return results, nil
 }
 
 // GetWindowText returns window title
-func GetWindowText(hwnd syscall.Handle, str *uint16, maxCount int32) (len int32, err error) {
+func GetWindowText(hwnd syscall.Handle, str *uint16, maxCount int32) (length int32, err error) {
 	r0, _, e1 := syscall.Syscall(procGetWindowTextW.Addr(), 3, uintptr(hwnd), uintptr(unsafe.Pointer(str)), uintptr(maxCount))
-	len = int32(r0)
-	if len == 0 {
+
+	length = int32(r0)
+	if length == 0 {
 		if e1 != 0 {
 			err = error(e1)
 		} else {
 			err = syscall.EINVAL
 		}
 	}
+
 	return
 }
 
 // WindowRect gets the dimensions for a Window handle.
 func WindowRect(hwnd syscall.Handle) (image.Rectangle, error) {
-	var rect win_RECT
+	var rect winRect
+
 	ret, _, err := procGetClientRect.Call(uintptr(hwnd), uintptr(unsafe.Pointer(&rect)))
 	if ret == 0 {
-		return image.Rectangle{}, fmt.Errorf("Error getting window dimensions: %s", err)
+		return image.Rectangle{}, fmt.Errorf("error getting window dimensions: %s", err)
 	}
 
 	return image.Rect(0, 0, int(rect.Right), int(rect.Bottom)), nil
@@ -165,24 +174,26 @@ func captureWindow(handle syscall.Handle, rect image.Rectangle) (image.Image, er
 	// Get the device context for screenshotting
 	dcSrc, _, err := procGetDC.Call(uintptr(handle))
 	if dcSrc == 0 {
-		return nil, fmt.Errorf("Error preparing screen capture: %s", err)
+		return nil, fmt.Errorf("error preparing screen capture: %s", err)
 	}
-	defer procReleaseDC.Call(0, dcSrc) // nolint
+
+	defer procReleaseDC.Call(0, dcSrc) // nolint:errcheck // it's fine
 
 	// Grab a compatible DC for drawing
 	dcDst, _, err := procCreateCompatibleDC.Call(dcSrc)
 	if dcDst == 0 {
-		return nil, fmt.Errorf("Error creating DC for drawing: %s", err)
+		return nil, fmt.Errorf("error creating DC for drawing: %s", err)
 	}
-	defer procDeleteDC.Call(dcDst) // nolint
+
+	defer procDeleteDC.Call(dcDst) // nolint:errcheck // it's fine
 
 	// Determine the width/height of our capture
 	width := rect.Dx()
 	height := rect.Dy()
 
 	// Get the bitmap we're going to draw onto
-	var bitmapInfo win_BITMAPINFO
-	bitmapInfo.BmiHeader = win_BITMAPINFOHEADER{
+	var bitmapInfo winBITMAPINFO
+	bitmapInfo.BmiHeader = winBITMAPINFOHEADER{
 		BiSize:        uint32(reflect.TypeOf(bitmapInfo.BmiHeader).Size()),
 		BiWidth:       int32(width),
 		BiHeight:      int32(height),
@@ -190,24 +201,28 @@ func captureWindow(handle syscall.Handle, rect image.Rectangle) (image.Image, er
 		BiBitCount:    32,
 		BiCompression: 0, // BI_RGB
 	}
+
 	bitmapData := unsafe.Pointer(uintptr(0))
 	bitmap, _, err := procCreateDIBSection.Call(
 		dcDst,
 		uintptr(unsafe.Pointer(&bitmapInfo)),
 		0,
 		uintptr(unsafe.Pointer(&bitmapData)), 0, 0)
+
 	if bitmap == 0 {
-		return nil, fmt.Errorf("Error creating bitmap for screen capture: %s", err)
+		return nil, fmt.Errorf("error creating bitmap for screen capture: %s", err)
 	}
-	defer procDeleteObject.Call(bitmap) // nolint
+
+	defer procDeleteObject.Call(bitmap) //nolint:errcheck // no needed
 
 	// Select the object and paint it
-	procSelectObject.Call(dcDst, bitmap) // nolint
+	procSelectObject.Call(dcDst, bitmap) //nolint:errcheck // no needed
 	ret, _, err := procBitBlt.Call(
 		dcDst, 0, 0, uintptr(width), uintptr(height),
-		dcSrc, uintptr(rect.Min.X), uintptr(rect.Min.Y), bitBlt_SRCCOPY)
+		dcSrc, uintptr(rect.Min.X), uintptr(rect.Min.Y), bitBltSRCCOPY)
+
 	if ret == 0 {
-		return nil, fmt.Errorf("Error capturing screen: %s", err)
+		return nil, fmt.Errorf("error capturing screen: %s", err)
 	}
 
 	// Convert the bitmap to an image.Image. We first start by directly
@@ -232,8 +247,8 @@ func captureWindow(handle syscall.Handle, rect image.Rectangle) (image.Image, er
 	return dst, nil
 }
 
-func enumWindows(enumFunc uintptr, lparam uintptr) (err error) {
-	r1, _, e1 := syscall.Syscall(procEnumWindows.Addr(), 2, uintptr(enumFunc), uintptr(lparam), 0)
+func enumWindows(enumFunc, lparam uintptr) (err error) {
+	r1, _, e1 := syscall.Syscall(procEnumWindows.Addr(), 2, enumFunc, lparam, 0)
 	if r1 == 0 {
 		if e1 != 0 {
 			err = error(e1)
@@ -241,5 +256,6 @@ func enumWindows(enumFunc uintptr, lparam uintptr) (err error) {
 			err = syscall.EINVAL
 		}
 	}
+
 	return
 }
