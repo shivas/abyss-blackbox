@@ -38,6 +38,14 @@ type captureConfig struct {
 	EVEClientWindowTitle string
 	EVEGameLogsFolder    string
 	TestServer           bool
+	RecorderShortcutText string
+	RecorderShortcut     walk.Shortcut
+}
+
+// SetRecorderShortcut satisfies ShortcutSetter interface.
+func (c *captureConfig) SetRecorderShortcut(s walk.Shortcut) {
+	c.RecorderShortcut = s
+	c.RecorderShortcutText = s.String()
 }
 
 func main() {
@@ -101,7 +109,7 @@ func main() {
 		}
 	}(notificationChannel, notificationIcon)
 
-	armw.RecordingButton.Clicked().Attach(func() {
+	recordingButtonHandler := func() {
 		if recorder.Status() == RECORDER_STOPPED {
 
 			charsChecked := []string{}
@@ -139,7 +147,38 @@ func main() {
 			armw.TestServer.SetEnabled(true)
 			_ = armw.RecordingButton.SetText("Start recording")
 		}
+	}
+
+	armw.RecordingButton.Clicked().Attach(recordingButtonHandler)
+	armw.MainWindow.Hotkey().Attach(func(hkid int) {
+		if hkid == 1 {
+			recordingButtonHandler()
+		}
 	})
+
+	walk.RegisterGlobalHotKey(armw.MainWindow, 1, currentSettings.RecorderShortcut)
+
+	shortcutRecorderHandler := func() {
+		if !armw.RecorderShortcutEdit.Enabled() { // start recording
+			armw.RecorderShortcutEdit.SetEnabled(true)
+			armw.RecorderShortcutEdit.SetFocus()
+			armw.RecorderShortcutRecordButton.SetText("Save")
+			if !win.UnregisterHotKey(armw.MainWindow.Handle(), 1) {
+				walk.MsgBox(armw.MainWindow, "Failed unregistering hotkey", "failed unregistering key, please restart application", walk.MsgBoxIconWarning)
+				return
+			}
+		} else { // persist new shortcut and rebind
+			armw.RecorderShortcutEdit.SetEnabled(false)
+			armw.RecorderShortcutRecordButton.SetText("Record shortcut")
+			if !walk.RegisterGlobalHotKey(armw.MainWindow, 1, currentSettings.RecorderShortcut) {
+				walk.MsgBox(armw.MainWindow, "Failed registering new hotkey", "failed registering new shortcut key, please restart application", walk.MsgBoxIconWarning)
+				return
+			}
+			writeConfig(currentSettings)
+		}
+	}
+
+	armw.RecorderShortcutRecordButton.Clicked().Attach(shortcutRecorderHandler)
 
 	go func(cw *walk.CustomWidget) {
 
@@ -307,7 +346,20 @@ func readConfig() (*captureConfig, error) {
 		}
 		eveGameLogsFolder := filepath.Join(usr.HomeDir, "Documents", "EVE", "logs", "Gamelogs")
 
-		c = &captureConfig{AppRoot: appDir, X: 10, Y: 10, H: 400, Recordings: filepath.Join(appDir, "recordings"), FilterThreshold: 110, FilteredPreview: false, EVEGameLogsFolder: eveGameLogsFolder}
+		defaultShortcut := walk.Shortcut{Modifiers: walk.ModControl | walk.ModAlt, Key: walk.KeyEnd}
+
+		c = &captureConfig{
+			AppRoot:              appDir,
+			X:                    10,
+			Y:                    10,
+			H:                    400,
+			Recordings:           filepath.Join(appDir, "recordings"),
+			FilterThreshold:      110,
+			FilteredPreview:      false,
+			EVEGameLogsFolder:    eveGameLogsFolder,
+			RecorderShortcutText: defaultShortcut.String(),
+			RecorderShortcut:     defaultShortcut,
+		}
 		load = false
 	} else if err != nil {
 		return c, err

@@ -9,24 +9,30 @@ import (
 	. "github.com/lxn/walk/declarative"
 )
 
+type ShortcutSetter interface {
+	SetRecorderShortcut(walk.Shortcut)
+}
+
 type WindowComboBoxItem struct {
 	WindowTitle  string
 	WindowHandle syscall.Handle
 }
 
 type AbyssRecorderWindow struct {
-	MainWindow              *walk.MainWindow
-	FilteredPreview         *walk.CheckBox
-	DataBinder              *walk.DataBinder
-	CaptureWidget           *walk.CustomWidget
-	HSetting                *walk.NumberEdit
-	RecordingButton         *walk.PushButton
-	CaptureWindowComboBox   *walk.ComboBox
-	CombatLogCharacterGroup *walk.GroupBox
-	CaptureSettingsGroup    *walk.GroupBox
-	EVEGameLogsFolderLabel  *walk.TextLabel
-	ChooseLogDirButton      *walk.PushButton
-	TestServer              *walk.CheckBox
+	MainWindow                   *walk.MainWindow
+	FilteredPreview              *walk.CheckBox
+	DataBinder                   *walk.DataBinder
+	CaptureWidget                *walk.CustomWidget
+	HSetting                     *walk.NumberEdit
+	RecordingButton              *walk.PushButton
+	CaptureWindowComboBox        *walk.ComboBox
+	CombatLogCharacterGroup      *walk.GroupBox
+	CaptureSettingsGroup         *walk.GroupBox
+	EVEGameLogsFolderLabel       *walk.TextLabel
+	ChooseLogDirButton           *walk.PushButton
+	TestServer                   *walk.CheckBox
+	RecorderShortcutEdit         *walk.LineEdit
+	RecorderShortcutRecordButton *walk.PushButton
 }
 
 func NewAbyssRecorderWindow(config interface{}, customWidgetPaintFunc walk.PaintFunc, comboBoxModel []*WindowComboBoxItem) *AbyssRecorderWindow {
@@ -139,6 +145,34 @@ func NewAbyssRecorderWindow(config interface{}, customWidgetPaintFunc walk.Paint
 										Children:           []Widget{},
 										AlwaysConsumeSpace: true,
 										MinSize:            Size{Height: 20},
+									},
+									Composite{
+										Layout:    HBox{},
+										Alignment: AlignHNearVNear,
+										Children: []Widget{
+											TextLabel{
+												Text: "Start/Stop shortcut",
+											},
+											LineEdit{
+												Text:     Bind("RecorderShortcutText"),
+												AssignTo: &obj.RecorderShortcutEdit,
+												OnKeyPress: func(key walk.Key) {
+													shortcut := walk.Shortcut{Modifiers: walk.ModifiersDown(), Key: key}
+													obj.RecorderShortcutEdit.SetText(shortcut.String())
+													c, ok := config.(ShortcutSetter)
+													if ok {
+														c.SetRecorderShortcut(shortcut)
+													}
+												},
+												Enabled:  false,
+												ReadOnly: true,
+											},
+											PushButton{
+												AssignTo: &obj.RecorderShortcutRecordButton,
+												MinSize:  Size{Height: 20},
+												Text:     "Record shortcut",
+											},
+										},
 									},
 									PushButton{
 										AssignTo: &obj.RecordingButton,
