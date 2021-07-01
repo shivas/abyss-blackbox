@@ -9,6 +9,7 @@ func BuildSettingsWidget(characters map[string]combatlog.CombatLogFile, parent w
 	for i := 0; i < parent.Children().Len(); i++ {
 		parent.Children().At(i).Dispose()
 	}
+
 	for charName := range characters {
 		cb, _ := walk.NewCheckBox(parent)
 		_ = cb.SetText(charName)

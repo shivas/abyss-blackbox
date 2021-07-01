@@ -9,7 +9,6 @@ import (
 )
 
 func TestAbyssRecording_Encode(t *testing.T) {
-
 	record := AbyssRecording{
 		Overview: []byte{1, 2, 3},
 		Loot: []*LootRecord{
