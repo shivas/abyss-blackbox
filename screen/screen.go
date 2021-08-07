@@ -92,6 +92,26 @@ type winRGBQUAD struct {
 // FoundWindows holds map between window handle and window title
 type FoundWindows map[syscall.Handle]string
 
+// EnsureUniqueNames renames windows if duplicate names found, possible if Tranquility and Singularity clients running at the same time with same character logged in.
+func (fw FoundWindows) EnsureUniqueNames() FoundWindows {
+	z := 1
+
+	for i, name1 := range fw {
+		for j, name2 := range fw {
+			if i == j {
+				continue
+			}
+
+			if name1 == name2 {
+				fw[j] = fmt.Sprintf("%s - %d", name2, z)
+				z++
+			}
+		}
+	}
+
+	return fw
+}
+
 func (fw FoundWindows) GetHandleByTitle(title string) syscall.Handle {
 	for handle, wtitle := range fw {
 		if wtitle == title {

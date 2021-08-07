@@ -67,7 +67,8 @@ func main() {
 
 	defer recorder.StopLoop()
 
-	foundEVEClientWindows, err := screen.FindWindow(regexp.MustCompile(EVEClientWindowRe))
+	foundEVEClientWindows, _ := screen.FindWindow(regexp.MustCompile(EVEClientWindowRe))
+	foundEVEClientWindows = foundEVEClientWindows.EnsureUniqueNames()
 
 	comboModel := make([]*mainwindow.WindowComboBoxItem, 0)
 	for handle, title := range foundEVEClientWindows {
