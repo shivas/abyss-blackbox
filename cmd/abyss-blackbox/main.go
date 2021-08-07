@@ -194,7 +194,7 @@ func main() {
 				image.Rectangle{Min: image.Point{X: currentSettings.X, Y: currentSettings.Y}, Max: image.Point{X: currentSettings.X + 255, Y: currentSettings.Y + currentSettings.H}},
 			)
 			if errr != nil {
-				walk.MsgBox(armw.MainWindow, "Error capturing window area, restart of application is needed.", err.Error(), walk.MsgBoxIconWarning)
+				walk.MsgBox(armw.MainWindow, "Error capturing window area, restart of application is needed.", errr.Error(), walk.MsgBoxIconWarning)
 				fmt.Printf("error lost capture window: %v", err)
 				os.Exit(1) // exit
 			}
