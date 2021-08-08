@@ -13,22 +13,23 @@ import (
 
 type captureConfig struct {
 	sync.Mutex
-	X, Y, H               int
-	AppRoot               string
-	Recordings            string
-	FilterThreshold       int
-	FilteredPreview       bool
-	EVEClientWindowTitle  string
-	EVEGameLogsFolder     string
-	TestServer            bool
-	RecorderShortcutText  string
-	RecorderShortcut      walk.Shortcut
-	Weather30ShortcutText string
-	Weather30Shortcut     walk.Shortcut
-	Weather50ShortcutText string
-	Weather50Shortcut     walk.Shortcut
-	Weather70ShortcutText string
-	Weather70Shortcut     walk.Shortcut
+	X, Y, H                 int
+	AppRoot                 string
+	Recordings              string
+	FilterThreshold         int
+	FilteredPreview         bool
+	EVEClientWindowTitle    string
+	EVEGameLogsFolder       string
+	TestServer              bool
+	RecorderShortcutText    string
+	RecorderShortcut        walk.Shortcut
+	Weather30ShortcutText   string
+	Weather30Shortcut       walk.Shortcut
+	Weather50ShortcutText   string
+	Weather50Shortcut       walk.Shortcut
+	Weather70ShortcutText   string
+	Weather70Shortcut       walk.Shortcut
+	LootRecordDiscriminator string
 }
 
 // SetRecorderShortcut satisfies ShortcutSetter interface.
@@ -80,22 +81,23 @@ func readConfig() (*captureConfig, error) {
 		eveGameLogsFolder := filepath.Join(usr.HomeDir, "Documents", "EVE", "logs", "Gamelogs")
 
 		c = &captureConfig{
-			AppRoot:               appDir,
-			X:                     10,
-			Y:                     10,
-			H:                     400,
-			Recordings:            filepath.Join(appDir, "recordings"),
-			FilterThreshold:       110,
-			FilteredPreview:       false,
-			EVEGameLogsFolder:     eveGameLogsFolder,
-			RecorderShortcutText:  defaultRecorderShortcut.String(),
-			RecorderShortcut:      defaultRecorderShortcut,
-			Weather30ShortcutText: defaultWeather30Shortcut.String(),
-			Weather30Shortcut:     defaultWeather30Shortcut,
-			Weather50ShortcutText: defaultWeather50Shortcut.String(),
-			Weather50Shortcut:     defaultWeather50Shortcut,
-			Weather70ShortcutText: defaultWeather70Shortcut.String(),
-			Weather70Shortcut:     defaultWeather70Shortcut,
+			AppRoot:                 appDir,
+			X:                       10,
+			Y:                       10,
+			H:                       400,
+			Recordings:              filepath.Join(appDir, "recordings"),
+			FilterThreshold:         110,
+			FilteredPreview:         false,
+			EVEGameLogsFolder:       eveGameLogsFolder,
+			RecorderShortcutText:    defaultRecorderShortcut.String(),
+			RecorderShortcut:        defaultRecorderShortcut,
+			Weather30ShortcutText:   defaultWeather30Shortcut.String(),
+			Weather30Shortcut:       defaultWeather30Shortcut,
+			Weather50ShortcutText:   defaultWeather50Shortcut.String(),
+			Weather50Shortcut:       defaultWeather50Shortcut,
+			Weather70ShortcutText:   defaultWeather70Shortcut.String(),
+			Weather70Shortcut:       defaultWeather70Shortcut,
+			LootRecordDiscriminator: "Quafe",
 		}
 		load = false
 	} else if err != nil {
@@ -132,6 +134,10 @@ func readConfig() (*captureConfig, error) {
 		if c.Weather70ShortcutText == "" {
 			c.Weather70Shortcut = defaultWeather70Shortcut
 			c.Weather70ShortcutText = defaultWeather70Shortcut.String()
+		}
+
+		if c.LootRecordDiscriminator == "" {
+			c.LootRecordDiscriminator = "Quafe"
 		}
 	}
 

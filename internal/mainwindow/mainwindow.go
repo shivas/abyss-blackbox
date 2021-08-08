@@ -46,6 +46,7 @@ type AbyssRecorderWindow struct {
 	Weather50ShortcutRecordButton *walk.PushButton
 	Weather70ShortcutEdit         *walk.LineEdit
 	Weather70ShortcutRecordButton *walk.PushButton
+	LootRecordDiscriminatorEdit   *walk.LineEdit
 }
 
 // NewAbyssRecorderWindow creates new main window of recorder.
@@ -126,7 +127,7 @@ func NewAbyssRecorderWindow(config interface{}, customWidgetPaintFunc walk.Paint
 								},
 							},
 							GroupBox{
-								Title:     "Server flag",
+								Title:     "Server flag:",
 								Layout:    VBox{},
 								Alignment: AlignHNearVNear,
 								Children: []Widget{
@@ -135,6 +136,23 @@ func NewAbyssRecorderWindow(config interface{}, customWidgetPaintFunc walk.Paint
 										Text:      "Test Server (Singularity)",
 										Alignment: AlignHNearVNear,
 										Checked:   Bind("TestServer"),
+									},
+								},
+							},
+							GroupBox{
+								Title:     "Loot recording settings:",
+								Layout:    VBox{},
+								Alignment: AlignHNearVNear,
+								Children: []Widget{
+									TextLabel{
+										Text: "Ship loot record discriminator item: (quantity in each ship should be different)",
+									},
+									LineEdit{
+										Text:     Bind("LootRecordDiscriminator"),
+										AssignTo: &obj.LootRecordDiscriminatorEdit,
+										OnEditingFinished: func() {
+											_ = obj.DataBinder.Submit()
+										},
 									},
 								},
 							},

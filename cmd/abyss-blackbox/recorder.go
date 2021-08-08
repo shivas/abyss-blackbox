@@ -212,11 +212,12 @@ func (r *Recorder) Stop() error {
 	}()
 
 	abyssFile := encoding.AbyssRecording{
-		Overview:        buf.Bytes(),
-		Loot:            r.lootRecords,
-		CombatLog:       r.combatlogReader.GetCombatLogRecords(r.charactersTracking),
-		TestServer:      r.config.TestServer,
-		WeatherStrength: int32(r.weatherStrength),
+		Overview:                buf.Bytes(),
+		Loot:                    r.lootRecords,
+		CombatLog:               r.combatlogReader.GetCombatLogRecords(r.charactersTracking),
+		TestServer:              r.config.TestServer,
+		WeatherStrength:         int32(r.weatherStrength),
+		LootRecordDiscriminator: r.config.LootRecordDiscriminator,
 	}
 
 	return abyssFile.Encode(file)
