@@ -37,6 +37,7 @@ type Recorder struct {
 	notificationChannel chan NotificationMessage
 	combatlogReader     *combatlog.Reader
 	charactersTracking  map[string]combatlog.CombatLogFile
+	weatherStrength     int
 }
 
 // NewRecorder constructs Recorder
@@ -69,6 +70,20 @@ func (r *Recorder) ClipboardListener() {
 	case r.loot <- clipboard:
 	default:
 		log.Println("not recording, loot capture dropped")
+	}
+}
+
+// GetWeatherStrengthListener returs listener that will set weather strength when invoked. In not running state it is NOOP.
+func (r *Recorder) GetWeatherStrengthListener(strength int) func() {
+	return func() {
+		if r.state != RecorderRunning {
+			return
+		}
+
+		r.Lock()
+		defer r.Unlock()
+		r.weatherStrength = strength
+		r.notificationChannel <- NotificationMessage{Title: "Abyssal.Space recorder", Message: fmt.Sprintf("Weather strength set to: %d%%", strength)}
 	}
 }
 
@@ -156,6 +171,7 @@ func (r *Recorder) Start(characters []string) {
 	r.frames = make([]*image.Paletted, 0)
 	r.delays = make([]int, 0)
 	r.lootRecords = make([]*encoding.LootRecord, 0)
+	r.weatherStrength = 0
 	r.state = RecorderAwaitingInitialLoot
 	r.notificationChannel <- NotificationMessage{Title: "Recording starting...", Message: "CTRL+A, CTRL+C your inventory"}
 }
@@ -196,10 +212,11 @@ func (r *Recorder) Stop() error {
 	}()
 
 	abyssFile := encoding.AbyssRecording{
-		Overview:   buf.Bytes(),
-		Loot:       r.lootRecords,
-		CombatLog:  r.combatlogReader.GetCombatLogRecords(r.charactersTracking),
-		TestServer: r.config.TestServer,
+		Overview:        buf.Bytes(),
+		Loot:            r.lootRecords,
+		CombatLog:       r.combatlogReader.GetCombatLogRecords(r.charactersTracking),
+		TestServer:      r.config.TestServer,
+		WeatherStrength: int32(r.weatherStrength),
 	}
 
 	return abyssFile.Encode(file)
