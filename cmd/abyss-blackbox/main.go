@@ -1,16 +1,12 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"image"
 	"image/color"
 	"log"
 	"os"
-	"os/user"
-	"path/filepath"
 	"regexp"
-	"sync"
 	"time"
 
 	"github.com/disintegration/imaging"
@@ -28,25 +24,12 @@ var recordingChannel chan *image.Paletted
 var notificationChannel chan NotificationMessage
 var recorder *Recorder
 
-type captureConfig struct {
-	sync.Mutex
-	X, Y, H              int
-	AppRoot              string
-	Recordings           string
-	FilterThreshold      int
-	FilteredPreview      bool
-	EVEClientWindowTitle string
-	EVEGameLogsFolder    string
-	TestServer           bool
-	RecorderShortcutText string
-	RecorderShortcut     walk.Shortcut
-}
-
-// SetRecorderShortcut satisfies ShortcutSetter interface.
-func (c *captureConfig) SetRecorderShortcut(s walk.Shortcut) {
-	c.RecorderShortcut = s
-	c.RecorderShortcutText = s.String()
-}
+const (
+	hotkeyRecoder = iota + 1
+	hotkeyWeather30
+	hotkeyWeather50
+	hotkeyWeather70
+)
 
 func main() {
 	var err error
@@ -67,7 +50,8 @@ func main() {
 
 	defer recorder.StopLoop()
 
-	foundEVEClientWindows, err := screen.FindWindow(regexp.MustCompile(EVEClientWindowRe))
+	foundEVEClientWindows, _ := screen.FindWindow(regexp.MustCompile(EVEClientWindowRe))
+	foundEVEClientWindows = foundEVEClientWindows.EnsureUniqueNames()
 
 	comboModel := make([]*mainwindow.WindowComboBoxItem, 0)
 	for handle, title := range foundEVEClientWindows {
@@ -137,6 +121,7 @@ func main() {
 			armw.CombatLogCharacterGroup.SetEnabled(false)
 			armw.CaptureSettingsGroup.SetEnabled(false)
 			armw.ChooseLogDirButton.SetEnabled(false)
+			armw.LootRecordDiscriminatorEdit.SetEnabled(false)
 			armw.TestServer.SetEnabled(false)
 			_ = armw.RecordingButton.SetText("Stop recording")
 		} else {
@@ -148,41 +133,70 @@ func main() {
 			armw.CaptureSettingsGroup.SetEnabled(true)
 			armw.ChooseLogDirButton.SetEnabled(true)
 			armw.TestServer.SetEnabled(true)
+			armw.LootRecordDiscriminatorEdit.SetEnabled(true)
 			_ = armw.RecordingButton.SetText("Start recording")
 		}
 	}
 
 	armw.RecordingButton.Clicked().Attach(recordingButtonHandler)
 	armw.MainWindow.Hotkey().Attach(func(hkid int) {
-		if hkid == 1 {
+		switch hkid {
+		case hotkeyRecoder:
 			recordingButtonHandler()
+		case hotkeyWeather30:
+			recorder.GetWeatherStrengthListener(30)()
+		case hotkeyWeather50:
+			recorder.GetWeatherStrengthListener(50)()
+		case hotkeyWeather70:
+			recorder.GetWeatherStrengthListener(70)()
 		}
 	})
 
-	walk.RegisterGlobalHotKey(armw.MainWindow, 1, currentSettings.RecorderShortcut)
+	walk.RegisterGlobalHotKey(armw.MainWindow, hotkeyRecoder, currentSettings.RecorderShortcut)
+	walk.RegisterGlobalHotKey(armw.MainWindow, hotkeyWeather30, currentSettings.Weather30Shortcut)
+	walk.RegisterGlobalHotKey(armw.MainWindow, hotkeyWeather50, currentSettings.Weather50Shortcut)
+	walk.RegisterGlobalHotKey(armw.MainWindow, hotkeyWeather70, currentSettings.Weather70Shortcut)
 
-	shortcutRecorderHandler := func() {
-		if !armw.RecorderShortcutEdit.Enabled() { // start recording
-			armw.RecorderShortcutEdit.SetEnabled(true)
-			_ = armw.RecorderShortcutEdit.SetFocus()
-			_ = armw.RecorderShortcutRecordButton.SetText("Save")
+	shortcutRecorderHandler := GetShortcutRecordingHandler(
+		armw.RecorderShortcutEdit,
+		armw.RecorderShortcutRecordButton,
+		armw.MainWindow,
+		hotkeyRecoder,
+		currentSettings,
+		currentSettings.RecorderShortcut,
+	)
 
-			if !win.UnregisterHotKey(armw.MainWindow.Handle(), 1) {
-				walk.MsgBox(armw.MainWindow, "Failed unregistering hotkey", "failed unregistering key, please restart application", walk.MsgBoxIconWarning)
-				return
-			}
-		} else { // persist new shortcut and rebind
-			armw.RecorderShortcutEdit.SetEnabled(false)
-			_ = armw.RecorderShortcutRecordButton.SetText("Record shortcut")
-			if !walk.RegisterGlobalHotKey(armw.MainWindow, 1, currentSettings.RecorderShortcut) {
-				walk.MsgBox(armw.MainWindow, "Failed registering new hotkey", "failed registering new shortcut key, please restart application", walk.MsgBoxIconWarning)
-				return
-			}
-			_ = writeConfig(currentSettings)
-		}
-	}
+	shortcutWeather30Handler := GetShortcutRecordingHandler(
+		armw.Weather30ShortcutEdit,
+		armw.Weather30ShortcutRecordButton,
+		armw.MainWindow,
+		hotkeyWeather30,
+		currentSettings,
+		currentSettings.Weather30Shortcut,
+	)
+
+	shortcutWeather50Handler := GetShortcutRecordingHandler(
+		armw.Weather50ShortcutEdit,
+		armw.Weather50ShortcutRecordButton,
+		armw.MainWindow,
+		hotkeyWeather50,
+		currentSettings,
+		currentSettings.Weather50Shortcut,
+	)
+
+	shortcutWeather70Handler := GetShortcutRecordingHandler(
+		armw.Weather70ShortcutEdit,
+		armw.Weather70ShortcutRecordButton,
+		armw.MainWindow,
+		hotkeyWeather70,
+		currentSettings,
+		currentSettings.Weather70Shortcut,
+	)
 
 	armw.RecorderShortcutRecordButton.Clicked().Attach(shortcutRecorderHandler)
+	armw.Weather30ShortcutRecordButton.Clicked().Attach(shortcutWeather30Handler)
+	armw.Weather50ShortcutRecordButton.Clicked().Attach(shortcutWeather50Handler)
+	armw.Weather70ShortcutRecordButton.Clicked().Attach(shortcutWeather70Handler)
 
 	go func(cw *walk.CustomWidget) {
 		t := time.NewTicker(time.Second)
@@ -193,7 +207,7 @@ func main() {
 				image.Rectangle{Min: image.Point{X: currentSettings.X, Y: currentSettings.Y}, Max: image.Point{X: currentSettings.X + 255, Y: currentSettings.Y + currentSettings.H}},
 			)
 			if errr != nil {
-				walk.MsgBox(armw.MainWindow, "Error capturing window area, restart of application is needed.", err.Error(), walk.MsgBoxIconWarning)
+				walk.MsgBox(armw.MainWindow, "Error capturing window area, restart of application is needed.", errr.Error(), walk.MsgBoxIconWarning)
 				fmt.Printf("error lost capture window: %v", err)
 				os.Exit(1) // exit
 			}
@@ -332,82 +346,4 @@ func paletted(img *image.NRGBA, cutoff uint32) *image.Paletted {
 	}
 
 	return buffimg
-}
-
-// readConfig reads configuration from json file, or creates one if file doesn't exist
-func readConfig() (*captureConfig, error) {
-	appDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-		return nil, err
-	}
-
-	var c *captureConfig
-
-	load := true
-	settingsFilename := filepath.Join(appDir, "settings.json")
-
-	_, err = os.Stat(settingsFilename)
-	if os.IsNotExist(err) {
-		// fetch current user folder and try to point to Gamelogs folder
-		usr, errr := user.Current()
-		if errr != nil {
-			return nil, errr
-		}
-
-		eveGameLogsFolder := filepath.Join(usr.HomeDir, "Documents", "EVE", "logs", "Gamelogs")
-
-		defaultShortcut := walk.Shortcut{Modifiers: walk.ModControl | walk.ModAlt, Key: walk.KeyEnd}
-
-		c = &captureConfig{
-			AppRoot:              appDir,
-			X:                    10,
-			Y:                    10,
-			H:                    400,
-			Recordings:           filepath.Join(appDir, "recordings"),
-			FilterThreshold:      110,
-			FilteredPreview:      false,
-			EVEGameLogsFolder:    eveGameLogsFolder,
-			RecorderShortcutText: defaultShortcut.String(),
-			RecorderShortcut:     defaultShortcut,
-		}
-		load = false
-	} else if err != nil {
-		return c, err
-	}
-
-	if load {
-		f, err := os.Open(settingsFilename)
-		if err != nil {
-			return c, err
-		}
-		defer f.Close()
-
-		err = json.NewDecoder(f).Decode(&c)
-		if err != nil {
-			return c, err
-		}
-	}
-
-	return c, nil
-}
-
-// writeConfig saves configuration to json file
-func writeConfig(c *captureConfig) error {
-	settingsFilename := filepath.Join(c.AppRoot, "settings.json")
-
-	f, err := os.Create(settingsFilename)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	encoder := json.NewEncoder(f)
-	encoder.SetIndent("", "  ")
-
-	err = encoder.Encode(c)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }

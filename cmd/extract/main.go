@@ -53,6 +53,8 @@ func main() {
 		fmt.Println("Recording is from Live server (tranquility)")
 	}
 
+	fmt.Printf("Recorded weather strength: %d%% and loot record discriminator: %q\n", abyssFile.WeatherStrength, abyssFile.LootRecordDiscriminator)
+
 	for _, logRecord := range abyssFile.CombatLog {
 		fmt.Printf("combat log record language for character %q: %s\n", logRecord.CharacterName, logRecord.GetLanguageCode().String())
 

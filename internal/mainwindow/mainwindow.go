@@ -9,8 +9,15 @@ import (
 	. "github.com/lxn/walk/declarative" // nolint:stylecheck,revive // we needs side effects
 )
 
+const (
+	ShortcutRecorder = iota
+	ShortcutWeather30
+	ShortcutWeather50
+	ShortcutWeather70
+)
+
 type ShortcutSetter interface {
-	SetRecorderShortcut(walk.Shortcut)
+	SetRecorderShortcut(int, walk.Shortcut)
 }
 
 type WindowComboBoxItem struct {
@@ -19,20 +26,27 @@ type WindowComboBoxItem struct {
 }
 
 type AbyssRecorderWindow struct {
-	MainWindow                   *walk.MainWindow
-	FilteredPreview              *walk.CheckBox
-	DataBinder                   *walk.DataBinder
-	CaptureWidget                *walk.CustomWidget
-	HSetting                     *walk.NumberEdit
-	RecordingButton              *walk.PushButton
-	CaptureWindowComboBox        *walk.ComboBox
-	CombatLogCharacterGroup      *walk.GroupBox
-	CaptureSettingsGroup         *walk.GroupBox
-	EVEGameLogsFolderLabel       *walk.TextLabel
-	ChooseLogDirButton           *walk.PushButton
-	TestServer                   *walk.CheckBox
-	RecorderShortcutEdit         *walk.LineEdit
-	RecorderShortcutRecordButton *walk.PushButton
+	MainWindow                    *walk.MainWindow
+	FilteredPreview               *walk.CheckBox
+	DataBinder                    *walk.DataBinder
+	CaptureWidget                 *walk.CustomWidget
+	HSetting                      *walk.NumberEdit
+	RecordingButton               *walk.PushButton
+	CaptureWindowComboBox         *walk.ComboBox
+	CombatLogCharacterGroup       *walk.GroupBox
+	CaptureSettingsGroup          *walk.GroupBox
+	EVEGameLogsFolderLabel        *walk.TextLabel
+	ChooseLogDirButton            *walk.PushButton
+	TestServer                    *walk.CheckBox
+	RecorderShortcutEdit          *walk.LineEdit
+	RecorderShortcutRecordButton  *walk.PushButton
+	Weather30ShortcutEdit         *walk.LineEdit
+	Weather30ShortcutRecordButton *walk.PushButton
+	Weather50ShortcutEdit         *walk.LineEdit
+	Weather50ShortcutRecordButton *walk.PushButton
+	Weather70ShortcutEdit         *walk.LineEdit
+	Weather70ShortcutRecordButton *walk.PushButton
+	LootRecordDiscriminatorEdit   *walk.LineEdit
 }
 
 // NewAbyssRecorderWindow creates new main window of recorder.
@@ -113,7 +127,7 @@ func NewAbyssRecorderWindow(config interface{}, customWidgetPaintFunc walk.Paint
 								},
 							},
 							GroupBox{
-								Title:     "Server flag",
+								Title:     "Server flag:",
 								Layout:    VBox{},
 								Alignment: AlignHNearVNear,
 								Children: []Widget{
@@ -124,6 +138,144 @@ func NewAbyssRecorderWindow(config interface{}, customWidgetPaintFunc walk.Paint
 										Checked:   Bind("TestServer"),
 									},
 								},
+							},
+							GroupBox{
+								Title:     "Loot recording settings:",
+								Layout:    VBox{},
+								Alignment: AlignHNearVNear,
+								Children: []Widget{
+									TextLabel{
+										Text: "Ship loot record discriminator item: (quantity in each ship should be different)",
+									},
+									LineEdit{
+										Text:     Bind("LootRecordDiscriminator"),
+										AssignTo: &obj.LootRecordDiscriminatorEdit,
+										OnEditingFinished: func() {
+											_ = obj.DataBinder.Submit()
+										},
+									},
+								},
+							},
+							GroupBox{
+								Title:     "Shortcut configuration:",
+								Layout:    VBox{},
+								Alignment: AlignHNearVNear,
+								Children: []Widget{
+									Composite{
+										Layout:    HBox{},
+										Alignment: AlignHNearVNear,
+										Children: []Widget{
+											TextLabel{
+												Text: "Start/Stop shortcut",
+											},
+											LineEdit{
+												Text:     Bind("RecorderShortcutText"),
+												AssignTo: &obj.RecorderShortcutEdit,
+												OnKeyPress: func(key walk.Key) {
+													shortcut := walk.Shortcut{Modifiers: walk.ModifiersDown(), Key: key}
+													_ = obj.RecorderShortcutEdit.SetText(shortcut.String())
+													c, ok := config.(ShortcutSetter)
+													if ok {
+														c.SetRecorderShortcut(ShortcutRecorder, shortcut)
+													}
+												},
+												Enabled:  false,
+												ReadOnly: true,
+											},
+											PushButton{
+												AssignTo: &obj.RecorderShortcutRecordButton,
+												MinSize:  Size{Height: 20},
+												Text:     "Record shortcut",
+											},
+										},
+									},
+									Composite{
+										Layout:    HBox{},
+										Alignment: AlignHNearVNear,
+										Children: []Widget{
+											TextLabel{
+												Text: "Weather strength 30%",
+											},
+											LineEdit{
+												Text:     Bind("Weather30ShortcutText"),
+												AssignTo: &obj.Weather30ShortcutEdit,
+												OnKeyPress: func(key walk.Key) {
+													shortcut := walk.Shortcut{Modifiers: walk.ModifiersDown(), Key: key}
+													_ = obj.Weather30ShortcutEdit.SetText(shortcut.String())
+													c, ok := config.(ShortcutSetter)
+													if ok {
+														c.SetRecorderShortcut(ShortcutWeather30, shortcut)
+													}
+												},
+												Enabled:  false,
+												ReadOnly: true,
+											},
+											PushButton{
+												AssignTo: &obj.Weather30ShortcutRecordButton,
+												MinSize:  Size{Height: 20},
+												Text:     "Record shortcut",
+											},
+										},
+									},
+									Composite{
+										Layout:    HBox{},
+										Alignment: AlignHNearVNear,
+										Children: []Widget{
+											TextLabel{
+												Text: "Weather strength 50%",
+											},
+											LineEdit{
+												Text:     Bind("Weather50ShortcutText"),
+												AssignTo: &obj.Weather50ShortcutEdit,
+												OnKeyPress: func(key walk.Key) {
+													shortcut := walk.Shortcut{Modifiers: walk.ModifiersDown(), Key: key}
+													_ = obj.Weather50ShortcutEdit.SetText(shortcut.String())
+													c, ok := config.(ShortcutSetter)
+													if ok {
+														c.SetRecorderShortcut(ShortcutWeather50, shortcut)
+													}
+												},
+												Enabled:  false,
+												ReadOnly: true,
+											},
+											PushButton{
+												AssignTo: &obj.Weather50ShortcutRecordButton,
+												MinSize:  Size{Height: 20},
+												Text:     "Record shortcut",
+											},
+										},
+									},
+									Composite{
+										Layout:    HBox{},
+										Alignment: AlignHNearVNear,
+										Children: []Widget{
+											TextLabel{
+												Text: "Weather strength 70%",
+											},
+											LineEdit{
+												Text:     Bind("Weather70ShortcutText"),
+												AssignTo: &obj.Weather70ShortcutEdit,
+												OnKeyPress: func(key walk.Key) {
+													shortcut := walk.Shortcut{Modifiers: walk.ModifiersDown(), Key: key}
+													_ = obj.Weather70ShortcutEdit.SetText(shortcut.String())
+													c, ok := config.(ShortcutSetter)
+													if ok {
+														c.SetRecorderShortcut(ShortcutWeather70, shortcut)
+													}
+												},
+												Enabled:  false,
+												ReadOnly: true,
+											},
+											PushButton{
+												AssignTo: &obj.Weather70ShortcutRecordButton,
+												MinSize:  Size{Height: 20},
+												Text:     "Record shortcut",
+											},
+										},
+									},
+								},
+								AlwaysConsumeSpace: true,
+								MinSize:            Size{Height: 20},
 							},
 							GroupBox{
 								Title:     "Combat log capture",
@@ -146,34 +298,6 @@ func NewAbyssRecorderWindow(config interface{}, customWidgetPaintFunc walk.Paint
 										Children:           []Widget{},
 										AlwaysConsumeSpace: true,
 										MinSize:            Size{Height: 20},
-									},
-									Composite{
-										Layout:    HBox{},
-										Alignment: AlignHNearVNear,
-										Children: []Widget{
-											TextLabel{
-												Text: "Start/Stop shortcut",
-											},
-											LineEdit{
-												Text:     Bind("RecorderShortcutText"),
-												AssignTo: &obj.RecorderShortcutEdit,
-												OnKeyPress: func(key walk.Key) {
-													shortcut := walk.Shortcut{Modifiers: walk.ModifiersDown(), Key: key}
-													_ = obj.RecorderShortcutEdit.SetText(shortcut.String())
-													c, ok := config.(ShortcutSetter)
-													if ok {
-														c.SetRecorderShortcut(shortcut)
-													}
-												},
-												Enabled:  false,
-												ReadOnly: true,
-											},
-											PushButton{
-												AssignTo: &obj.RecorderShortcutRecordButton,
-												MinSize:  Size{Height: 20},
-												Text:     "Record shortcut",
-											},
-										},
 									},
 									PushButton{
 										AssignTo: &obj.RecordingButton,
