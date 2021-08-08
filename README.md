@@ -51,6 +51,7 @@ Overview
 In overview make sure following is setup:
 * `Abyssal Trace` is in your overview (appears in overview when you activate Abyssal filament) (**A MUST!**)
 * `Type` column is at least 256 pixels wide and sorter accordingly (triangle up, this to make sure that `Vila Swarmer` drones won't push your regular NPC out of overview)
+* In Overview settings > Appearance make sure `use small font` is NOT checked!
 * Loot boxes in on your overview: (currently not used, but later could be used to detect looting)
     * `Triglavian Extraction Node`
     * `Triglavian Extraction SubNode`
@@ -84,6 +85,7 @@ Recording (from scratch)
 * Activate Abyssal Filament
 * When Fillament disappears from your inventory (consumed), again , press CTRL+A, CTRL+C (this will capture your inventory after removal of filament. This allows of perfect recognition what type of Abyssal site you are running)
 * Go do the Abyss site, while looting you can occasionally record your loot with CTRL+A, CTRL+C
+* When you have some spare time, check what weather strength is and press shortcut to set weather strength in recording. 
 * After you exit abyss, or looted last can and hit reload (important if tracking of ammo used is important to you) record your loot again.
 * Click `Stop Recording`, this will write timestamped file inside `recordings` folder where application executable is.
 
@@ -100,6 +102,6 @@ It safe to use if it doesn't brake their EULA and other policies, and I'm sure i
   
 How to contact
 -
-You can find me in Abyssal Lurkers Discord (ShiVAs#5949), or send email: lurker at abyssal dot space.
+You can find me in Abyssal Lurkers Discord (ShiVAs#5949) or `#abyssal-telemetry` channel, or send email: lurker at abyssal dot space.
  
 
