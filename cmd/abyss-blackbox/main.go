@@ -13,7 +13,9 @@ import (
 	"github.com/lxn/walk"
 	"github.com/lxn/win"
 	"github.com/shivas/abyss-blackbox/combatlog"
+	"github.com/shivas/abyss-blackbox/internal/charmanager"
 	"github.com/shivas/abyss-blackbox/internal/mainwindow"
+	"github.com/shivas/abyss-blackbox/internal/uploader"
 	"github.com/shivas/abyss-blackbox/screen"
 )
 
@@ -61,8 +63,34 @@ func main() {
 	logFiles, _ := clr.GetLogFiles(time.Now(), time.Duration(24)*time.Hour)
 	charMap := clr.MapCharactersToFiles(logFiles)
 
-	armw := mainwindow.NewAbyssRecorderWindow(currentSettings, drawStuff, comboModel)
+	charManager := charmanager.New(func(s1, s2 string) {
+		notificationChannel <- NotificationMessage{Title: s1, Message: s2}
+	})
+
+	actions := make(map[string]walk.EventHandler)
+	actions["add_character"] = charManager.EventHandlerCharAdd
+
+	armw := mainwindow.NewAbyssRecorderWindow(currentSettings, drawStuff, comboModel, actions)
+	_ = charManager.MainWindow(armw).LoadCache() // assign window to control widgets
+	charManager.RefreshUI()
+
 	mainwindow.BuildSettingsWidget(charMap, armw.CombatLogCharacterGroup)
+
+	charManager.OnActivateCharacter =
+		func(char charmanager.Character) {
+			if char.CharacterID > 0 {
+				_ = armw.MainWindow.SetTitle("Abyssal.Space Blackbox Recorder - " + char.CharacterName)
+			}
+
+			notificationChannel <- NotificationMessage{Title: "Active character set to:", Message: char.CharacterName}
+
+			currentSettings.ActiveCharacter = char.CharacterID
+			armw.AutoUploadCheckbox.SetEnabled(char.CharacterID > 0)
+
+			_ = writeConfig(currentSettings)
+		}
+
+	_ = charManager.SetActiveCharacter(currentSettings.ActiveCharacter)
 
 	if len(foundEVEClientWindows) == 0 {
 		walk.MsgBox(armw.MainWindow, "No signed in EVE clients detected", "Please login with atleast one character and then restart this application", walk.MsgBoxIconWarning)
@@ -125,10 +153,24 @@ func main() {
 			armw.TestServer.SetEnabled(false)
 			_ = armw.RecordingButton.SetText("Stop recording")
 		} else {
-			err = recorder.Stop()
-			if err != nil {
+			filename, errr := recorder.Stop()
+			if errr != nil {
 				walk.MsgBox(armw.MainWindow, "Error writing recording", err.Error(), walk.MsgBoxIconWarning)
 			}
+
+			char := charManager.ActiveCharacter()
+
+			if armw.AutoUploadCheckbox.Checked() && char != nil {
+				go func(fn string, t string) {
+					uploadFile, uploadErr := uploader.Upload(fn, t)
+					if uploadErr != nil {
+						walk.MsgBox(armw.MainWindow, "Record uploading error", uploadErr.Error(), walk.MsgBoxIconWarning)
+					} else {
+						notificationChannel <- NotificationMessage{Title: "Record uploaded successfully", Message: uploadFile}
+					}
+				}(filename, char.CharacterToken)
+			}
+
 			armw.CombatLogCharacterGroup.SetEnabled(true)
 			armw.CaptureSettingsGroup.SetEnabled(true)
 			armw.ChooseLogDirButton.SetEnabled(true)

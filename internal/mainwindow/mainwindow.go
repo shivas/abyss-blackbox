@@ -47,10 +47,13 @@ type AbyssRecorderWindow struct {
 	Weather70ShortcutEdit         *walk.LineEdit
 	Weather70ShortcutRecordButton *walk.PushButton
 	LootRecordDiscriminatorEdit   *walk.LineEdit
+	CharacterSwitcherMenu         *walk.Menu
+	Toolbar                       *walk.ToolBar
+	AutoUploadCheckbox            *walk.CheckBox
 }
 
 // NewAbyssRecorderWindow creates new main window of recorder.
-func NewAbyssRecorderWindow(config interface{}, customWidgetPaintFunc walk.PaintFunc, comboBoxModel []*WindowComboBoxItem) *AbyssRecorderWindow {
+func NewAbyssRecorderWindow(config interface{}, customWidgetPaintFunc walk.PaintFunc, comboBoxModel []*WindowComboBoxItem, actions map[string]walk.EventHandler) *AbyssRecorderWindow {
 	obj := AbyssRecorderWindow{}
 
 	if err := (MainWindow{
@@ -64,6 +67,25 @@ func NewAbyssRecorderWindow(config interface{}, customWidgetPaintFunc walk.Paint
 			DataSource:      config,
 			AutoSubmit:      true,
 			AutoSubmitDelay: 1 * time.Second,
+		},
+		ToolBar: ToolBar{
+			ButtonStyle: ToolBarButtonImageBeforeText,
+			AssignTo:    &obj.Toolbar,
+			Items: []MenuItem{
+				Menu{
+					Text:     "Switch character",
+					Image:    21,
+					AssignTo: &obj.CharacterSwitcherMenu,
+					Items:    []MenuItem{},
+					Enabled:  false,
+				},
+				Separator{},
+				Action{
+					Text:        "Add character",
+					Image:       14,
+					OnTriggered: actions["add_character"],
+				},
+			},
 		},
 		Children: []Widget{
 			Composite{
@@ -298,6 +320,14 @@ func NewAbyssRecorderWindow(config interface{}, customWidgetPaintFunc walk.Paint
 										Children:           []Widget{},
 										AlwaysConsumeSpace: true,
 										MinSize:            Size{Height: 20},
+									},
+									CheckBox{
+										Text:        "Upload file after recording complete",
+										AssignTo:    &obj.AutoUploadCheckbox,
+										Alignment:   AlignHNearVCenter,
+										Enabled:     false,
+										Checked:     Bind("AutoUpload"),
+										ToolTipText: "Automatically uploads recorded file to active character account.",
 									},
 									PushButton{
 										AssignTo: &obj.RecordingButton,

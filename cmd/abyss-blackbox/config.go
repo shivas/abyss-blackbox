@@ -30,6 +30,8 @@ type captureConfig struct {
 	Weather70ShortcutText   string
 	Weather70Shortcut       walk.Shortcut
 	LootRecordDiscriminator string
+	ActiveCharacter         int32
+	AutoUpload              bool
 }
 
 // SetRecorderShortcut satisfies ShortcutSetter interface.
