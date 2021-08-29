@@ -177,13 +177,13 @@ func (r *Recorder) Start(characters []string) {
 }
 
 // Stop stops recording and writes .abyss file if frames captured
-func (r *Recorder) Stop() error {
+func (r *Recorder) Stop() (string, error) {
 	r.Lock()
 	defer r.Unlock()
 
 	if len(r.frames) == 0 {
 		r.state = RecorderStopped
-		return fmt.Errorf("there was no frames captured, skipping recording of abyss run")
+		return r.recordingName, fmt.Errorf("there was no frames captured, skipping recording of abyss run")
 	}
 
 	file, _ := os.Create(r.recordingName)
@@ -198,7 +198,7 @@ func (r *Recorder) Stop() error {
 
 	err := gif.EncodeAll(&buf, &anim)
 	if err != nil {
-		return err
+		return r.recordingName, err
 	}
 
 	defer func() {
@@ -220,7 +220,8 @@ func (r *Recorder) Stop() error {
 		LootRecordDiscriminator: r.config.LootRecordDiscriminator,
 	}
 
-	return abyssFile.Encode(file)
+	err = abyssFile.Encode(file)
+	return r.recordingName, err
 }
 
 // StopLoop stops main recording loop

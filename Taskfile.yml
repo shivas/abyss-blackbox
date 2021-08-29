@@ -23,7 +23,7 @@ tasks:
   resources:
     desc: Compile resource file
     cmds:
-      - rsrc -manifest ./cmd/abyss-blackbox/main.manifest -ico ./trig_96x96.ico -o ./cmd/abyss-blackbox/rsrc.syso 
+      - rsrc -manifest ./cmd/abyss-blackbox/main.manifest -ico ./trig_96x96.ico,./images/plus.ico,./images/switch-char.ico -o ./cmd/abyss-blackbox/rsrc.syso 
 
   release:
     desc: Builds artifacts for release

@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package protobuf;
+
+option go_package = "github.com/shivas/abyss-blackbox/charmanager";
+
+message CharacterCache {
+    repeated CharacterRecord characters = 1;
+}
+
+message CharacterRecord {
+  int32 characterID = 1;
+  string characterName = 2;
+  string token = 3;
+  bytes portrait = 4;
+}
