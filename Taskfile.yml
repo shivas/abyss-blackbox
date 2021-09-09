@@ -17,7 +17,7 @@ tasks:
   install-deps:
     desc: Install dependencies needed to build release
     cmds:
-      - go get github.com/gonutz/rsrc
+      - go install github.com/gonutz/rsrc@latest
     silent: true
 
   resources:

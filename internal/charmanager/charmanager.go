@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"sync"
 
 	"github.com/lxn/walk"
@@ -83,11 +84,7 @@ func (c *CharManager) PersistCache() error {
 
 	var err error
 
-	wd, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-
+	wd := filepath.Dir(os.Args[0])
 	file := path.Join(wd, cacheFileName)
 
 	var cache CharacterCache
@@ -119,11 +116,7 @@ func (c *CharManager) LoadCache() error {
 
 	var err error
 
-	wd, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-
+	wd := filepath.Dir(os.Args[0])
 	file := path.Join(wd, cacheFileName)
 
 	f, err := os.Open(file)
