@@ -25,6 +25,14 @@ tasks:
     cmds:
       - rsrc -manifest ./cmd/abyss-blackbox/main.manifest -ico ./trig_96x96.ico,./images/plus.ico,./images/switch-char.ico -o ./cmd/abyss-blackbox/rsrc.syso 
 
+  debug:
+    desc: Builds artifacts for release
+    deps: [install-deps, resources]
+    cmds:
+      - go generate ./...
+      - go build -trimpath -ldflags="-s -w" -o abyss-blackbox.exe ./cmd/abyss-blackbox 
+      - go build -trimpath -ldflags="-s -w" ./cmd/extract/
+
   release:
     desc: Builds artifacts for release
     deps: [install-deps, resources]

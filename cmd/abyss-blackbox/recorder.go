@@ -15,6 +15,7 @@ import (
 	"github.com/lxn/walk"
 	"github.com/shivas/abyss-blackbox/combatlog"
 	"github.com/shivas/abyss-blackbox/encoding"
+	"github.com/shivas/abyss-blackbox/internal/config"
 )
 
 const (
@@ -28,7 +29,7 @@ type Recorder struct {
 	state               int
 	frameChan           chan *image.Paletted
 	loot                chan string
-	config              *captureConfig
+	config              *config.CaptureConfig
 	done                chan bool
 	frames              []*image.Paletted
 	delays              []int
@@ -41,7 +42,7 @@ type Recorder struct {
 }
 
 // NewRecorder constructs Recorder
-func NewRecorder(frameChan chan *image.Paletted, c *captureConfig, nc chan NotificationMessage, clr *combatlog.Reader) *Recorder {
+func NewRecorder(frameChan chan *image.Paletted, c *config.CaptureConfig, nc chan NotificationMessage, clr *combatlog.Reader) *Recorder {
 	return &Recorder{
 		frameChan:           frameChan,
 		loot:                make(chan string, 2),
