@@ -34,7 +34,7 @@ tasks:
       - go build -trimpath -ldflags="-s -w" ./cmd/extract/
     vars:
       GIT_VERSION:
-        sh: git describe --tags --always --long | cut -d '-' -f3
+        sh: git describe --tags --always
       GO_VERSION:
         sh: go env GOVERSION
           
@@ -47,6 +47,6 @@ tasks:
       - go build -trimpath -ldflags="-s -w" ./cmd/extract/
     vars:
       GIT_VERSION:
-        sh: git describe --tags --always --long | cut -d '-' -f3
+        sh: git describe --tags --always
       GO_VERSION:
         sh: go env GOVERSION

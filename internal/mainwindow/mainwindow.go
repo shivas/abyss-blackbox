@@ -53,8 +53,8 @@ func NewAbyssRecorderWindow(
 	if err := (MainWindow{
 		AssignTo: &obj.MainWindow,
 		Title:    "Abyssal.Space Blackbox Recorder",
-		MinSize:  Size{Width: 400, Height: 400},
-		Size:     Size{Width: 400, Height: 400},
+		MinSize:  Size{Width: 480, Height: 480},
+		Size:     Size{Width: 480, Height: 480},
 		Layout:   HBox{MarginsZero: true, Alignment: AlignHNearVNear},
 		DataBinder: DataBinder{
 			AssignTo:   &obj.DataBinder,
