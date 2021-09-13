@@ -169,6 +169,15 @@ func main() {
 	}
 
 	armw.RecordingButton.Clicked().Attach(recordingButtonHandler)
+	armw.PresetSaveButton.Clicked().Attach(func() {
+		p := config.Preset{X: currentSettings.X, Y: currentSettings.Y, H: currentSettings.H}
+		_, _ = mainwindow.RunNewPresetDialog(armw.MainWindow, p, currentSettings)
+		_ = config.Write(currentSettings)
+		armw.RefreshPresets(currentSettings)
+	})
+
+	armw.RefreshPresets(currentSettings)
+
 	armw.MainWindow.Hotkey().Attach(func(hkid int) {
 		switch hkid {
 		case config.HotkeyRecoder:

@@ -17,9 +17,14 @@ const (
 	HotkeyWeather70
 )
 
+type Preset struct {
+	X, Y, H int
+}
+
 type CaptureConfig struct {
 	sync.Mutex
 	X, Y, H                 int
+	Presets                 map[string]Preset
 	AppRoot                 string
 	Recordings              string
 	FilterThreshold         int
@@ -93,6 +98,7 @@ func Read() (*CaptureConfig, error) {
 			X:                       10,
 			Y:                       10,
 			H:                       400,
+			Presets:                 make(map[string]Preset),
 			Recordings:              filepath.Join(appDir, "recordings"),
 			FilterThreshold:         110,
 			FilteredPreview:         false,

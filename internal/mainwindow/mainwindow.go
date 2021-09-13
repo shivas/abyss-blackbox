@@ -12,6 +12,8 @@ import (
 	"github.com/shivas/abyss-blackbox/internal/config"
 )
 
+const presetToolbarAction = 3
+
 type WindowComboBoxItem struct {
 	WindowTitle  string
 	WindowHandle syscall.Handle
@@ -22,6 +24,8 @@ type AbyssRecorderWindow struct {
 	FilteredPreview         *walk.CheckBox
 	DataBinder              *walk.DataBinder
 	CaptureWidget           *walk.CustomWidget
+	XSetting                *walk.NumberEdit
+	YSetting                *walk.NumberEdit
 	HSetting                *walk.NumberEdit
 	RecordingButton         *walk.PushButton
 	CaptureWindowComboBox   *walk.ComboBox
@@ -32,6 +36,8 @@ type AbyssRecorderWindow struct {
 	Toolbar                 *walk.ToolBar
 	AutoUploadCheckbox      *walk.CheckBox
 	SettingsAction          *walk.Action
+	PresetSwitcherMenu      *walk.Menu
+	PresetSaveButton        *walk.PushButton
 }
 
 // NewAbyssRecorderWindow creates new main window of recorder.
@@ -51,10 +57,9 @@ func NewAbyssRecorderWindow(
 		Size:     Size{Width: 400, Height: 600},
 		Layout:   HBox{MarginsZero: true, Alignment: AlignHNearVNear},
 		DataBinder: DataBinder{
-			AssignTo:        &obj.DataBinder,
-			DataSource:      c,
-			AutoSubmit:      true,
-			AutoSubmitDelay: time.Duration(1) * time.Second,
+			AssignTo:   &obj.DataBinder,
+			DataSource: c,
+			AutoSubmit: true,
 		},
 		ToolBar: ToolBar{
 			ButtonStyle: ToolBarButtonImageBeforeText,
@@ -67,12 +72,20 @@ func NewAbyssRecorderWindow(
 					Items:    []MenuItem{},
 					Enabled:  false,
 				},
-				Separator{},
 				Action{
 					Text:        "Add character",
 					Image:       14,
 					OnTriggered: actions["add_character"],
 				},
+				Separator{},
+				Menu{
+					Text:     "Presets",
+					Image:    28,
+					AssignTo: &obj.PresetSwitcherMenu,
+					Items:    []MenuItem{},
+					Enabled:  false,
+				},
+				Separator{},
 			},
 		},
 		MenuItems: []MenuItem{
@@ -93,20 +106,16 @@ func NewAbyssRecorderWindow(
 						Alignment: AlignHNearVNear,
 						Children: []Widget{
 							GroupBox{
-								Title:  "Overview settings",
-								Layout: VBox{},
+								Title:    "Capture region",
+								Layout:   VBox{SpacingZero: true},
+								AssignTo: &obj.CaptureSettingsGroup,
 								Children: []Widget{
-									CheckBox{
-										AssignTo:  &obj.FilteredPreview,
-										Text:      "show filtered preview",
-										Alignment: AlignHNearVNear,
-										Checked:   Bind("FilteredPreview"),
-									},
-									GroupBox{
-										Title:    "Capture region",
-										Layout:   HBox{},
-										AssignTo: &obj.CaptureSettingsGroup,
+									Composite{
+										Layout: HBox{},
 										Children: []Widget{
+											TextLabel{
+												Text: "EVE window:",
+											},
 											ComboBox{
 												AssignTo:      &obj.CaptureWindowComboBox,
 												Model:         comboBoxModel,
@@ -116,17 +125,33 @@ func NewAbyssRecorderWindow(
 												Value:         Bind("EVEClientWindowTitle"),
 												Editable:      false,
 											},
+											CheckBox{
+												AssignTo:  &obj.FilteredPreview,
+												Text:      "show filtered preview",
+												Alignment: AlignHNearVNear,
+												Checked:   Bind("FilteredPreview"),
+											},
+											HSpacer{},
+										},
+									},
+									Composite{
+										Layout: HBox{},
+										Children: []Widget{
 											TextLabel{
 												Text: "X:",
 											},
 											NumberEdit{
-												Value: Bind("X"),
+												AssignTo: &obj.XSetting,
+												MinSize:  Size{Width: 50, Height: 10},
+												Value:    Bind("X"),
 											},
 											TextLabel{
 												Text: "Y:",
 											},
 											NumberEdit{
-												Value: Bind("Y"),
+												AssignTo: &obj.YSetting,
+												MinSize:  Size{Width: 50, Height: 10},
+												Value:    Bind("Y"),
 											},
 											TextLabel{
 												Text: "Height:",
@@ -134,6 +159,7 @@ func NewAbyssRecorderWindow(
 											NumberEdit{
 												AssignTo: &obj.HSetting,
 												Value:    Bind("H"),
+												MinSize:  Size{Width: 50, Height: 10},
 												OnValueChanged: func() {
 													if obj.CaptureWidget != nil {
 														_ = obj.CaptureWidget.SetMinMaxSizePixels(walk.Size{Height: int(obj.HSetting.Value()), Width: 255}, walk.Size{})
@@ -141,10 +167,16 @@ func NewAbyssRecorderWindow(
 													}
 												},
 											},
+											PushButton{
+												AssignTo: &obj.PresetSaveButton,
+												Text:     "Save as preset",
+											},
+											HSpacer{},
 										},
 									},
 								},
 							},
+
 							GroupBox{
 								Title:     "Server flag:",
 								Layout:    VBox{},
@@ -242,6 +274,37 @@ func NewAbyssRecorderWindow(
 	})
 
 	return &obj
+}
+
+func (m *AbyssRecorderWindow) RefreshPresets(c *config.CaptureConfig) {
+	_ = m.PresetSwitcherMenu.Actions().Clear()
+
+	for presetName := range c.Presets {
+		presetName := presetName
+		action := walk.NewAction()
+		_ = action.SetText(presetName)
+		_ = action.Triggered().Attach(func() {
+			modifiers := walk.ModifiersDown()
+			if modifiers == walk.ModControl {
+				delete(c.Presets, presetName)
+				_ = config.Write(c)
+				m.RefreshPresets(c)
+			} else {
+				p := c.Presets[presetName]
+				_ = m.XSetting.SetValue(float64(p.X))
+				_ = m.YSetting.SetValue(float64(p.Y))
+				_ = m.HSetting.SetValue(float64(p.H))
+			}
+		})
+
+		_ = m.PresetSwitcherMenu.Actions().Add(action)
+	}
+
+	if len(c.Presets) > 0 {
+		_ = m.Toolbar.Actions().At(presetToolbarAction).SetEnabled(true)
+	} else {
+		_ = m.Toolbar.Actions().At(presetToolbarAction).SetEnabled(false)
+	}
 }
 
 func buildRunnerList(characters map[string]combatlog.CombatLogFile, parent walk.Container) {
