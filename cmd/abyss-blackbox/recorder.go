@@ -122,6 +122,10 @@ func (r *Recorder) StartLoop() {
 				if r.state == RecorderRunning { // append to buffer
 					r.frames = append(r.frames, frame)
 					r.delays = append(r.delays, 10)
+
+					if r.weatherStrength == 0 && (len(r.frames)%180 == 0) { // remind every 3 minutes skipping initial frame
+						r.notificationChannel <- NotificationMessage{"Reminder", "Please record weather strength!"}
+					}
 				}
 				r.Unlock()
 			default:

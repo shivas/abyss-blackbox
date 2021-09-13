@@ -85,21 +85,6 @@ func main() {
 		walk.MsgBox(armw.MainWindow, "No signed in EVE clients detected", "Please login with atleast one character and then restart this application", walk.MsgBoxIconWarning)
 	}
 
-	// armw.ChooseLogDirButton.Clicked().Attach(func() {
-	// 	fd := walk.FileDialog{}
-	// 	accepted, _ := fd.ShowBrowseFolder(armw.MainWindow)
-	// 	if accepted {
-	// 		_ = armw.EVEGameLogsFolderLabel.SetText(fd.FilePath)
-	// 		clr.SetLogFolder(fd.FilePath)
-	// 		logFiles, err = clr.GetLogFiles(time.Now(), time.Duration(24)*time.Hour)
-	// 		if err != nil {
-	// 			return
-	// 		}
-	// 		charMap := clr.MapCharactersToFiles(logFiles)
-	// 		mainwindow.BuildSettingsWidget(charMap, armw.CombatLogCharacterGroup)
-	// 	}
-	// })
-
 	notificationIcon := CreateNotificationIcon(armw.MainWindow)
 
 	defer func() {
