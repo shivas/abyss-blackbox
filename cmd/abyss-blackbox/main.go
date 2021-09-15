@@ -14,6 +14,7 @@ import (
 	"github.com/lxn/win"
 	"github.com/shivas/abyss-blackbox/combatlog"
 	"github.com/shivas/abyss-blackbox/internal/charmanager"
+	"github.com/shivas/abyss-blackbox/internal/config"
 	"github.com/shivas/abyss-blackbox/internal/mainwindow"
 	"github.com/shivas/abyss-blackbox/internal/uploader"
 	"github.com/shivas/abyss-blackbox/screen"
@@ -26,17 +27,10 @@ var recordingChannel chan *image.Paletted
 var notificationChannel chan NotificationMessage
 var recorder *Recorder
 
-const (
-	hotkeyRecoder = iota + 1
-	hotkeyWeather30
-	hotkeyWeather50
-	hotkeyWeather70
-)
-
 func main() {
 	var err error
 
-	currentSettings, err := readConfig()
+	currentSettings, err := config.Read()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -60,9 +54,6 @@ func main() {
 		comboModel = append(comboModel, &mainwindow.WindowComboBoxItem{WindowTitle: title, WindowHandle: handle})
 	}
 
-	logFiles, _ := clr.GetLogFiles(time.Now(), time.Duration(24)*time.Hour)
-	charMap := clr.MapCharactersToFiles(logFiles)
-
 	charManager := charmanager.New(func(s1, s2 string) {
 		notificationChannel <- NotificationMessage{Title: s1, Message: s2}
 	})
@@ -70,11 +61,9 @@ func main() {
 	actions := make(map[string]walk.EventHandler)
 	actions["add_character"] = charManager.EventHandlerCharAdd
 
-	armw := mainwindow.NewAbyssRecorderWindow(currentSettings, drawStuff, comboModel, actions)
+	armw := mainwindow.NewAbyssRecorderWindow(currentSettings, drawStuff, comboModel, actions, clr)
 	_ = charManager.MainWindow(armw).LoadCache() // assign window to control widgets
 	charManager.RefreshUI()
-
-	mainwindow.BuildSettingsWidget(charMap, armw.CombatLogCharacterGroup)
 
 	charManager.OnActivateCharacter =
 		func(char charmanager.Character) {
@@ -87,7 +76,7 @@ func main() {
 			currentSettings.ActiveCharacter = char.CharacterID
 			armw.AutoUploadCheckbox.SetEnabled(char.CharacterID > 0)
 
-			_ = writeConfig(currentSettings)
+			_ = config.Write(currentSettings)
 		}
 
 	_ = charManager.SetActiveCharacter(currentSettings.ActiveCharacter)
@@ -95,21 +84,6 @@ func main() {
 	if len(foundEVEClientWindows) == 0 {
 		walk.MsgBox(armw.MainWindow, "No signed in EVE clients detected", "Please login with atleast one character and then restart this application", walk.MsgBoxIconWarning)
 	}
-
-	armw.ChooseLogDirButton.Clicked().Attach(func() {
-		fd := walk.FileDialog{}
-		accepted, _ := fd.ShowBrowseFolder(armw.MainWindow)
-		if accepted {
-			_ = armw.EVEGameLogsFolderLabel.SetText(fd.FilePath)
-			clr.SetLogFolder(fd.FilePath)
-			logFiles, err = clr.GetLogFiles(time.Now(), time.Duration(24)*time.Hour)
-			if err != nil {
-				return
-			}
-			charMap := clr.MapCharactersToFiles(logFiles)
-			mainwindow.BuildSettingsWidget(charMap, armw.CombatLogCharacterGroup)
-		}
-	})
 
 	notificationIcon := CreateNotificationIcon(armw.MainWindow)
 
@@ -146,21 +120,22 @@ func main() {
 			}
 
 			recorder.Start(charsChecked)
+
+			_ = armw.MainWindow.Menu().Actions().At(0).SetVisible(false)
 			armw.CombatLogCharacterGroup.SetEnabled(false)
 			armw.CaptureSettingsGroup.SetEnabled(false)
-			armw.ChooseLogDirButton.SetEnabled(false)
-			armw.LootRecordDiscriminatorEdit.SetEnabled(false)
 			armw.TestServer.SetEnabled(false)
+			_ = armw.Toolbar.Actions().At(3).SetEnabled(false)
 			_ = armw.RecordingButton.SetText("Stop recording")
 		} else {
 			filename, errr := recorder.Stop()
 			if errr != nil {
-				walk.MsgBox(armw.MainWindow, "Error writing recording", err.Error(), walk.MsgBoxIconWarning)
+				walk.MsgBox(armw.MainWindow, "Error writing recording", errr.Error(), walk.MsgBoxIconWarning)
 			}
 
 			char := charManager.ActiveCharacter()
 
-			if armw.AutoUploadCheckbox.Checked() && char != nil {
+			if armw.AutoUploadCheckbox.Checked() && char != nil && errr == nil {
 				go func(fn string, t string) {
 					uploadFile, uploadErr := uploader.Upload(fn, t)
 					if uploadErr != nil {
@@ -171,74 +146,42 @@ func main() {
 				}(filename, char.CharacterToken)
 			}
 
+			_ = armw.MainWindow.Menu().Actions().At(0).SetVisible(true)
 			armw.CombatLogCharacterGroup.SetEnabled(true)
 			armw.CaptureSettingsGroup.SetEnabled(true)
-			armw.ChooseLogDirButton.SetEnabled(true)
 			armw.TestServer.SetEnabled(true)
-			armw.LootRecordDiscriminatorEdit.SetEnabled(true)
+			_ = armw.Toolbar.Actions().At(3).SetEnabled(true)
 			_ = armw.RecordingButton.SetText("Start recording")
 		}
 	}
 
 	armw.RecordingButton.Clicked().Attach(recordingButtonHandler)
+	armw.PresetSaveButton.Clicked().Attach(func() {
+		p := config.Preset{X: currentSettings.X, Y: currentSettings.Y, H: currentSettings.H}
+		_, _ = mainwindow.RunNewPresetDialog(armw.MainWindow, p, currentSettings)
+		_ = config.Write(currentSettings)
+		armw.RefreshPresets(currentSettings)
+	})
+
+	armw.RefreshPresets(currentSettings)
+
 	armw.MainWindow.Hotkey().Attach(func(hkid int) {
 		switch hkid {
-		case hotkeyRecoder:
+		case config.HotkeyRecoder:
 			recordingButtonHandler()
-		case hotkeyWeather30:
+		case config.HotkeyWeather30:
 			recorder.GetWeatherStrengthListener(30)()
-		case hotkeyWeather50:
+		case config.HotkeyWeather50:
 			recorder.GetWeatherStrengthListener(50)()
-		case hotkeyWeather70:
+		case config.HotkeyWeather70:
 			recorder.GetWeatherStrengthListener(70)()
 		}
 	})
 
-	walk.RegisterGlobalHotKey(armw.MainWindow, hotkeyRecoder, currentSettings.RecorderShortcut)
-	walk.RegisterGlobalHotKey(armw.MainWindow, hotkeyWeather30, currentSettings.Weather30Shortcut)
-	walk.RegisterGlobalHotKey(armw.MainWindow, hotkeyWeather50, currentSettings.Weather50Shortcut)
-	walk.RegisterGlobalHotKey(armw.MainWindow, hotkeyWeather70, currentSettings.Weather70Shortcut)
-
-	shortcutRecorderHandler := GetShortcutRecordingHandler(
-		armw.RecorderShortcutEdit,
-		armw.RecorderShortcutRecordButton,
-		armw.MainWindow,
-		hotkeyRecoder,
-		currentSettings,
-		currentSettings.RecorderShortcut,
-	)
-
-	shortcutWeather30Handler := GetShortcutRecordingHandler(
-		armw.Weather30ShortcutEdit,
-		armw.Weather30ShortcutRecordButton,
-		armw.MainWindow,
-		hotkeyWeather30,
-		currentSettings,
-		currentSettings.Weather30Shortcut,
-	)
-
-	shortcutWeather50Handler := GetShortcutRecordingHandler(
-		armw.Weather50ShortcutEdit,
-		armw.Weather50ShortcutRecordButton,
-		armw.MainWindow,
-		hotkeyWeather50,
-		currentSettings,
-		currentSettings.Weather50Shortcut,
-	)
-
-	shortcutWeather70Handler := GetShortcutRecordingHandler(
-		armw.Weather70ShortcutEdit,
-		armw.Weather70ShortcutRecordButton,
-		armw.MainWindow,
-		hotkeyWeather70,
-		currentSettings,
-		currentSettings.Weather70Shortcut,
-	)
-
-	armw.RecorderShortcutRecordButton.Clicked().Attach(shortcutRecorderHandler)
-	armw.Weather30ShortcutRecordButton.Clicked().Attach(shortcutWeather30Handler)
-	armw.Weather50ShortcutRecordButton.Clicked().Attach(shortcutWeather50Handler)
-	armw.Weather70ShortcutRecordButton.Clicked().Attach(shortcutWeather70Handler)
+	walk.RegisterGlobalHotKey(armw.MainWindow, config.HotkeyRecoder, currentSettings.RecorderShortcut)
+	walk.RegisterGlobalHotKey(armw.MainWindow, config.HotkeyWeather30, currentSettings.Weather30Shortcut)
+	walk.RegisterGlobalHotKey(armw.MainWindow, config.HotkeyWeather50, currentSettings.Weather50Shortcut)
+	walk.RegisterGlobalHotKey(armw.MainWindow, config.HotkeyWeather70, currentSettings.Weather70Shortcut)
 
 	go func(cw *walk.CustomWidget) {
 		t := time.NewTicker(time.Second)
@@ -285,7 +228,7 @@ func main() {
 	walk.Clipboard().ContentsChanged().Attach(recorder.ClipboardListener)
 
 	defer func() {
-		err = writeConfig(currentSettings)
+		err = config.Write(currentSettings)
 		if err != nil {
 			log.Fatalf("failed to save settings after main window close: %v", err)
 		}

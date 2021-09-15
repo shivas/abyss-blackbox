@@ -7,18 +7,12 @@ import (
 
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative" // nolint:stylecheck,revive // we needs side effects
+	"github.com/lxn/win"
+	"github.com/shivas/abyss-blackbox/combatlog"
+	"github.com/shivas/abyss-blackbox/internal/config"
 )
 
-const (
-	ShortcutRecorder = iota
-	ShortcutWeather30
-	ShortcutWeather50
-	ShortcutWeather70
-)
-
-type ShortcutSetter interface {
-	SetRecorderShortcut(int, walk.Shortcut)
-}
+const presetToolbarAction = 3
 
 type WindowComboBoxItem struct {
 	WindowTitle  string
@@ -26,47 +20,49 @@ type WindowComboBoxItem struct {
 }
 
 type AbyssRecorderWindow struct {
-	MainWindow                    *walk.MainWindow
-	FilteredPreview               *walk.CheckBox
-	DataBinder                    *walk.DataBinder
-	CaptureWidget                 *walk.CustomWidget
-	HSetting                      *walk.NumberEdit
-	RecordingButton               *walk.PushButton
-	CaptureWindowComboBox         *walk.ComboBox
-	CombatLogCharacterGroup       *walk.GroupBox
-	CaptureSettingsGroup          *walk.GroupBox
-	EVEGameLogsFolderLabel        *walk.TextLabel
-	ChooseLogDirButton            *walk.PushButton
-	TestServer                    *walk.CheckBox
-	RecorderShortcutEdit          *walk.LineEdit
-	RecorderShortcutRecordButton  *walk.PushButton
-	Weather30ShortcutEdit         *walk.LineEdit
-	Weather30ShortcutRecordButton *walk.PushButton
-	Weather50ShortcutEdit         *walk.LineEdit
-	Weather50ShortcutRecordButton *walk.PushButton
-	Weather70ShortcutEdit         *walk.LineEdit
-	Weather70ShortcutRecordButton *walk.PushButton
-	LootRecordDiscriminatorEdit   *walk.LineEdit
-	CharacterSwitcherMenu         *walk.Menu
-	Toolbar                       *walk.ToolBar
-	AutoUploadCheckbox            *walk.CheckBox
+	MainWindow              *walk.MainWindow
+	FilteredPreview         *walk.CheckBox
+	DataBinder              *walk.DataBinder
+	CaptureWidget           *walk.CustomWidget
+	XSetting                *walk.NumberEdit
+	YSetting                *walk.NumberEdit
+	HSetting                *walk.NumberEdit
+	RecordingButton         *walk.PushButton
+	CaptureWindowComboBox   *walk.ComboBox
+	CombatLogCharacterGroup *walk.GroupBox
+	CaptureSettingsGroup    *walk.GroupBox
+	CapturePreviewGroupBox  *walk.GroupBox
+	TestServer              *walk.CheckBox
+	CharacterSwitcherMenu   *walk.Menu
+	Toolbar                 *walk.ToolBar
+	AutoUploadCheckbox      *walk.CheckBox
+	SettingsAction          *walk.Action
+	PresetSwitcherMenu      *walk.Menu
+	PresetSaveButton        *walk.PushButton
+	PreviewScrollView       *walk.ScrollView
+	AbyssTypeToolbar        *walk.ToolBar
 }
 
 // NewAbyssRecorderWindow creates new main window of recorder.
-func NewAbyssRecorderWindow(config interface{}, customWidgetPaintFunc walk.PaintFunc, comboBoxModel []*WindowComboBoxItem, actions map[string]walk.EventHandler) *AbyssRecorderWindow {
+func NewAbyssRecorderWindow(
+	c interface{},
+	customWidgetPaintFunc walk.PaintFunc,
+	comboBoxModel []*WindowComboBoxItem,
+	actions map[string]walk.EventHandler,
+	clr *combatlog.Reader,
+) *AbyssRecorderWindow {
 	obj := AbyssRecorderWindow{}
 
 	if err := (MainWindow{
 		AssignTo: &obj.MainWindow,
 		Title:    "Abyssal.Space Blackbox Recorder",
-		MinSize:  Size{Width: 320, Height: 240},
-		Size:     Size{Width: 400, Height: 600},
-		Layout:   HBox{MarginsZero: false},
+		MinSize:  Size{Width: 480, Height: 480},
+		Size:     Size{Width: 480, Height: 480},
+		Layout:   HBox{MarginsZero: true, Alignment: AlignHNearVNear},
 		DataBinder: DataBinder{
-			AssignTo:        &obj.DataBinder,
-			DataSource:      config,
-			AutoSubmit:      true,
-			AutoSubmitDelay: 1 * time.Second,
+			AssignTo:   &obj.DataBinder,
+			DataSource: c,
+			AutoSubmit: true,
 		},
 		ToolBar: ToolBar{
 			ButtonStyle: ToolBarButtonImageBeforeText,
@@ -79,11 +75,31 @@ func NewAbyssRecorderWindow(config interface{}, customWidgetPaintFunc walk.Paint
 					Items:    []MenuItem{},
 					Enabled:  false,
 				},
-				Separator{},
 				Action{
 					Text:        "Add character",
 					Image:       14,
 					OnTriggered: actions["add_character"],
+				},
+				Separator{},
+				Menu{
+					Text:     "Presets",
+					Image:    28,
+					AssignTo: &obj.PresetSwitcherMenu,
+					Items:    []MenuItem{},
+					Enabled:  false,
+				},
+				Separator{},
+			},
+		},
+		MenuItems: []MenuItem{
+			Action{
+				AssignTo: &obj.SettingsAction,
+				Text:     "Settings",
+			},
+			Action{
+				Text: "About",
+				OnTriggered: func() {
+					_, _ = RunAboutDialog(obj.MainWindow)
 				},
 			},
 		},
@@ -92,24 +108,20 @@ func NewAbyssRecorderWindow(config interface{}, customWidgetPaintFunc walk.Paint
 				Layout: HBox{},
 				Children: []Widget{
 					Composite{
-						Layout:    VBox{},
+						Layout:    VBox{MarginsZero: true},
 						Alignment: AlignHNearVNear,
 						Children: []Widget{
 							GroupBox{
-								Title:  "Overview settings",
-								Layout: VBox{},
+								Title:    "Capture region",
+								Layout:   VBox{SpacingZero: true},
+								AssignTo: &obj.CaptureSettingsGroup,
 								Children: []Widget{
-									CheckBox{
-										AssignTo:  &obj.FilteredPreview,
-										Text:      "show filtered preview",
-										Alignment: AlignHNearVNear,
-										Checked:   Bind("FilteredPreview"),
-									},
-									GroupBox{
-										Title:    "Capture region",
-										Layout:   HBox{},
-										AssignTo: &obj.CaptureSettingsGroup,
+									Composite{
+										Layout: HBox{},
 										Children: []Widget{
+											TextLabel{
+												Text: "EVE window:",
+											},
 											ComboBox{
 												AssignTo:      &obj.CaptureWindowComboBox,
 												Model:         comboBoxModel,
@@ -119,17 +131,33 @@ func NewAbyssRecorderWindow(config interface{}, customWidgetPaintFunc walk.Paint
 												Value:         Bind("EVEClientWindowTitle"),
 												Editable:      false,
 											},
+											CheckBox{
+												AssignTo:  &obj.FilteredPreview,
+												Text:      "show filtered preview",
+												Alignment: AlignHNearVNear,
+												Checked:   Bind("FilteredPreview"),
+											},
+											HSpacer{},
+										},
+									},
+									Composite{
+										Layout: HBox{},
+										Children: []Widget{
 											TextLabel{
 												Text: "X:",
 											},
 											NumberEdit{
-												Value: Bind("X"),
+												AssignTo: &obj.XSetting,
+												MinSize:  Size{Width: 50, Height: 10},
+												Value:    Bind("X"),
 											},
 											TextLabel{
 												Text: "Y:",
 											},
 											NumberEdit{
-												Value: Bind("Y"),
+												AssignTo: &obj.YSetting,
+												MinSize:  Size{Width: 50, Height: 10},
+												Value:    Bind("Y"),
 											},
 											TextLabel{
 												Text: "Height:",
@@ -137,6 +165,7 @@ func NewAbyssRecorderWindow(config interface{}, customWidgetPaintFunc walk.Paint
 											NumberEdit{
 												AssignTo: &obj.HSetting,
 												Value:    Bind("H"),
+												MinSize:  Size{Width: 50, Height: 10},
 												OnValueChanged: func() {
 													if obj.CaptureWidget != nil {
 														_ = obj.CaptureWidget.SetMinMaxSizePixels(walk.Size{Height: int(obj.HSetting.Value()), Width: 255}, walk.Size{})
@@ -144,207 +173,153 @@ func NewAbyssRecorderWindow(config interface{}, customWidgetPaintFunc walk.Paint
 													}
 												},
 											},
+											PushButton{
+												AssignTo: &obj.PresetSaveButton,
+												Text:     "Save as preset",
+											},
+											HSpacer{},
 										},
 									},
 								},
 							},
-							GroupBox{
-								Title:     "Server flag:",
-								Layout:    VBox{},
+							Composite{
+								Layout:    HBox{MarginsZero: true},
 								Alignment: AlignHNearVNear,
 								Children: []Widget{
-									CheckBox{
-										AssignTo:  &obj.TestServer,
-										Text:      "Test Server (Singularity)",
-										Alignment: AlignHNearVNear,
-										Checked:   Bind("TestServer"),
+									GroupBox{
+										Title:              "Manual abyss type override",
+										Checkable:          true,
+										Checked:            Bind("AbyssTypeOverride"),
+										Layout:             VBox{},
+										AlwaysConsumeSpace: true,
+										Alignment:          AlignHNearVNear,
+										Children: []Widget{
+											ToolBar{
+												AssignTo:    &obj.AbyssTypeToolbar,
+												ButtonStyle: ToolBarButtonImageBeforeText,
+												Items: []MenuItem{
+													Menu{
+														Text: "Ship",
+														Items: []MenuItem{
+															Action{
+																Text: "Cruiser",
+															},
+															Action{
+																Text: "Destroyers",
+															},
+															Action{
+																Text: "Frigates",
+															},
+														},
+													},
+													Menu{
+														Text: "Tier",
+														Items: []MenuItem{
+															Action{
+																Text: "T0",
+															},
+															Action{
+																Text: "T1",
+															},
+															Action{
+																Text: "T2",
+															},
+															Action{
+																Text: "T3",
+															},
+															Action{
+																Text: "T4",
+															},
+															Action{
+																Text: "T5",
+															},
+															Action{
+																Text: "T6",
+															},
+														},
+													},
+													Menu{
+														Text: "Weather",
+														Items: []MenuItem{
+															Action{
+																Text: "Gamma",
+															},
+															Action{
+																Text: "Exotic",
+															},
+															Action{
+																Text: "Dark",
+															},
+															Action{
+																Text: "Firestorm",
+															},
+															Action{
+																Text: "Electrical",
+															},
+														},
+													},
+												},
+											},
+										},
 									},
+									HSpacer{},
+									GroupBox{
+										Title:     "Server flag:",
+										Layout:    VBox{},
+										Alignment: AlignHNearVNear,
+										Children: []Widget{
+											CheckBox{
+												AssignTo:  &obj.TestServer,
+												Text:      "Test Server (Singularity)",
+												Alignment: AlignHNearVNear,
+												Checked:   Bind("TestServer"),
+											},
+										},
+									},
+									//									HSpacer{},
 								},
 							},
 							GroupBox{
-								Title:     "Loot recording settings:",
-								Layout:    VBox{},
-								Alignment: AlignHNearVNear,
-								Children: []Widget{
-									TextLabel{
-										Text: "Ship loot record discriminator item: (quantity in each ship should be different)",
-									},
-									LineEdit{
-										Text:     Bind("LootRecordDiscriminator"),
-										AssignTo: &obj.LootRecordDiscriminatorEdit,
-										OnEditingFinished: func() {
-											_ = obj.DataBinder.Submit()
-										},
-									},
-								},
-							},
-							GroupBox{
-								Title:     "Shortcut configuration:",
-								Layout:    VBox{},
-								Alignment: AlignHNearVNear,
-								Children: []Widget{
-									Composite{
-										Layout:    HBox{},
-										Alignment: AlignHNearVNear,
-										Children: []Widget{
-											TextLabel{
-												Text: "Start/Stop shortcut",
-											},
-											LineEdit{
-												Text:     Bind("RecorderShortcutText"),
-												AssignTo: &obj.RecorderShortcutEdit,
-												OnKeyPress: func(key walk.Key) {
-													shortcut := walk.Shortcut{Modifiers: walk.ModifiersDown(), Key: key}
-													_ = obj.RecorderShortcutEdit.SetText(shortcut.String())
-													c, ok := config.(ShortcutSetter)
-													if ok {
-														c.SetRecorderShortcut(ShortcutRecorder, shortcut)
-													}
-												},
-												Enabled:  false,
-												ReadOnly: true,
-											},
-											PushButton{
-												AssignTo: &obj.RecorderShortcutRecordButton,
-												MinSize:  Size{Height: 20},
-												Text:     "Record shortcut",
-											},
-										},
-									},
-									Composite{
-										Layout:    HBox{},
-										Alignment: AlignHNearVNear,
-										Children: []Widget{
-											TextLabel{
-												Text: "Weather strength 30%",
-											},
-											LineEdit{
-												Text:     Bind("Weather30ShortcutText"),
-												AssignTo: &obj.Weather30ShortcutEdit,
-												OnKeyPress: func(key walk.Key) {
-													shortcut := walk.Shortcut{Modifiers: walk.ModifiersDown(), Key: key}
-													_ = obj.Weather30ShortcutEdit.SetText(shortcut.String())
-													c, ok := config.(ShortcutSetter)
-													if ok {
-														c.SetRecorderShortcut(ShortcutWeather30, shortcut)
-													}
-												},
-												Enabled:  false,
-												ReadOnly: true,
-											},
-											PushButton{
-												AssignTo: &obj.Weather30ShortcutRecordButton,
-												MinSize:  Size{Height: 20},
-												Text:     "Record shortcut",
-											},
-										},
-									},
-									Composite{
-										Layout:    HBox{},
-										Alignment: AlignHNearVNear,
-										Children: []Widget{
-											TextLabel{
-												Text: "Weather strength 50%",
-											},
-											LineEdit{
-												Text:     Bind("Weather50ShortcutText"),
-												AssignTo: &obj.Weather50ShortcutEdit,
-												OnKeyPress: func(key walk.Key) {
-													shortcut := walk.Shortcut{Modifiers: walk.ModifiersDown(), Key: key}
-													_ = obj.Weather50ShortcutEdit.SetText(shortcut.String())
-													c, ok := config.(ShortcutSetter)
-													if ok {
-														c.SetRecorderShortcut(ShortcutWeather50, shortcut)
-													}
-												},
-												Enabled:  false,
-												ReadOnly: true,
-											},
-											PushButton{
-												AssignTo: &obj.Weather50ShortcutRecordButton,
-												MinSize:  Size{Height: 20},
-												Text:     "Record shortcut",
-											},
-										},
-									},
-									Composite{
-										Layout:    HBox{},
-										Alignment: AlignHNearVNear,
-										Children: []Widget{
-											TextLabel{
-												Text: "Weather strength 70%",
-											},
-											LineEdit{
-												Text:     Bind("Weather70ShortcutText"),
-												AssignTo: &obj.Weather70ShortcutEdit,
-												OnKeyPress: func(key walk.Key) {
-													shortcut := walk.Shortcut{Modifiers: walk.ModifiersDown(), Key: key}
-													_ = obj.Weather70ShortcutEdit.SetText(shortcut.String())
-													c, ok := config.(ShortcutSetter)
-													if ok {
-														c.SetRecorderShortcut(ShortcutWeather70, shortcut)
-													}
-												},
-												Enabled:  false,
-												ReadOnly: true,
-											},
-											PushButton{
-												AssignTo: &obj.Weather70ShortcutRecordButton,
-												MinSize:  Size{Height: 20},
-												Text:     "Record shortcut",
-											},
-										},
-									},
-								},
+								Title:              "Capture combatlog of characters:",
+								Layout:             VBox{},
+								Alignment:          AlignHNearVNear,
+								AssignTo:           &obj.CombatLogCharacterGroup,
+								Children:           []Widget{},
 								AlwaysConsumeSpace: true,
 								MinSize:            Size{Height: 20},
 							},
-							GroupBox{
-								Title:     "Combat log capture",
-								Layout:    VBox{},
-								Alignment: AlignHNearVNear,
-								Children: []Widget{
-									TextLabel{
-										Text:     Bind("EVEGameLogsFolder"),
-										AssignTo: &obj.EVEGameLogsFolderLabel,
-									},
-									PushButton{
-										Text:     "Choose",
-										AssignTo: &obj.ChooseLogDirButton,
-									},
-									GroupBox{
-										Title:              "Capture combatlog of characters:",
-										Layout:             VBox{},
-										Alignment:          AlignHNearVNear,
-										AssignTo:           &obj.CombatLogCharacterGroup,
-										Children:           []Widget{},
-										AlwaysConsumeSpace: true,
-										MinSize:            Size{Height: 20},
-									},
-									CheckBox{
-										Text:        "Upload file after recording complete",
-										AssignTo:    &obj.AutoUploadCheckbox,
-										Alignment:   AlignHNearVCenter,
-										Enabled:     false,
-										Checked:     Bind("AutoUpload"),
-										ToolTipText: "Automatically uploads recorded file to active character account.",
-									},
-									PushButton{
-										AssignTo: &obj.RecordingButton,
-										MinSize:  Size{Height: 40},
-										Text:     "Start recording",
-									},
-								},
+							CheckBox{
+								Text:        "Upload file after recording complete",
+								AssignTo:    &obj.AutoUploadCheckbox,
+								Alignment:   AlignHNearVCenter,
+								Enabled:     false,
+								Checked:     Bind("AutoUpload"),
+								ToolTipText: "Automatically uploads recorded file to active character account.",
+							},
+							PushButton{
+								AssignTo: &obj.RecordingButton,
+								MinSize:  Size{Height: 40},
+								Text:     "Start recording",
 							},
 						},
 					},
 					GroupBox{
-						Title:  "Captured region:",
-						Layout: VBox{},
+						Title:    "Captured region:",
+						Layout:   VBox{},
+						AssignTo: &obj.CapturePreviewGroupBox,
+						OnSizeChanged: func() {
+							h := obj.MainWindow.AsContainerBase().MinSizeHint()
+							c := obj.MainWindow.AsContainerBase().Size()
+							_ = obj.MainWindow.SetMinMaxSize(h, walk.Size{})
+							if c.Height > h.Height {
+								_ = obj.MainWindow.AsFormBase().WindowBase.SetSize(h)
+							}
+
+						},
 						Children: []Widget{
 							CustomWidget{
 								AssignTo:            &obj.CaptureWidget,
-								MinSize:             Size{Width: 255, Height: 800},
+								MinSize:             Size{Width: 255, Height: 1},
 								Paint:               customWidgetPaintFunc,
 								InvalidatesOnResize: true,
 								ClearsBackground:    true,
@@ -359,5 +334,87 @@ func NewAbyssRecorderWindow(config interface{}, customWidgetPaintFunc walk.Paint
 		log.Fatal(err)
 	}
 
+	logFiles, _ := clr.GetLogFiles(time.Now(), time.Duration(24)*time.Hour)
+
+	charMap := clr.MapCharactersToFiles(logFiles)
+	buildRunnerList(charMap, obj.CombatLogCharacterGroup)
+
+	settingsChangedHandler := func(c *config.CaptureConfig) {
+		_ = config.Write(c)
+		clr.SetLogFolder(c.EVEGameLogsFolder)
+		logFiles, err := clr.GetLogFiles(time.Now(), time.Duration(24)*time.Hour)
+
+		if err != nil {
+			return
+		}
+
+		buildRunnerList(clr.MapCharactersToFiles(logFiles), obj.CombatLogCharacterGroup)
+
+		// rebind hotkeys
+		win.UnregisterHotKey(obj.MainWindow.Handle(), config.HotkeyRecoder)
+		win.UnregisterHotKey(obj.MainWindow.Handle(), config.HotkeyWeather30)
+		win.UnregisterHotKey(obj.MainWindow.Handle(), config.HotkeyWeather50)
+		win.UnregisterHotKey(obj.MainWindow.Handle(), config.HotkeyWeather70)
+
+		walk.RegisterGlobalHotKey(obj.MainWindow, config.HotkeyRecoder, c.RecorderShortcut)
+		walk.RegisterGlobalHotKey(obj.MainWindow, config.HotkeyWeather30, c.Weather30Shortcut)
+		walk.RegisterGlobalHotKey(obj.MainWindow, config.HotkeyWeather50, c.Weather50Shortcut)
+		walk.RegisterGlobalHotKey(obj.MainWindow, config.HotkeyWeather70, c.Weather70Shortcut)
+	}
+
+	obj.SettingsAction.Triggered().Attach(func() {
+		_, _ = RunAnimalDialog(obj.MainWindow, c, settingsChangedHandler)
+	})
+
+	chooser := NewAbyssTypeChooser(obj.AbyssTypeToolbar, c.(*config.CaptureConfig))
+	chooser.Init()
+
 	return &obj
+}
+
+func (m *AbyssRecorderWindow) RefreshPresets(c *config.CaptureConfig) {
+	_ = m.PresetSwitcherMenu.Actions().Clear()
+
+	for presetName := range c.Presets {
+		presetName := presetName
+		action := walk.NewAction()
+		_ = action.SetText(presetName)
+		_ = action.Triggered().Attach(func() {
+			modifiers := walk.ModifiersDown()
+			if modifiers == walk.ModControl {
+				delete(c.Presets, presetName)
+				_ = config.Write(c)
+				m.RefreshPresets(c)
+			} else {
+				p := c.Presets[presetName]
+				_ = m.XSetting.SetValue(float64(p.X))
+				_ = m.YSetting.SetValue(float64(p.Y))
+				_ = m.HSetting.SetValue(float64(p.H))
+			}
+		})
+
+		_ = m.PresetSwitcherMenu.Actions().Add(action)
+	}
+
+	if len(c.Presets) > 0 {
+		_ = m.Toolbar.Actions().At(presetToolbarAction).SetEnabled(true)
+	} else {
+		_ = m.Toolbar.Actions().At(presetToolbarAction).SetEnabled(false)
+	}
+}
+
+func buildRunnerList(characters map[string]combatlog.CombatLogFile, parent walk.Container) {
+	for i := 0; i < parent.Children().Len(); i++ {
+		w := parent.Children().At(i)
+		w.SetVisible(false)
+	}
+
+	for charName := range characters {
+		cb, _ := walk.NewCheckBox(parent)
+		_ = cb.SetText(charName)
+		_ = cb.SetMinMaxSize(walk.Size{Width: 400}, walk.Size{Width: 800})
+		_ = cb.SetAlignment(walk.AlignHNearVCenter)
+		cb.SetChecked(false)
+		_ = parent.Children().Add(cb)
+	}
 }

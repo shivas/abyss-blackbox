@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"encoding/json"
@@ -8,12 +8,23 @@ import (
 	"sync"
 
 	"github.com/lxn/walk"
-	"github.com/shivas/abyss-blackbox/internal/mainwindow"
 )
 
-type captureConfig struct {
+const (
+	HotkeyRecoder = iota + 1
+	HotkeyWeather30
+	HotkeyWeather50
+	HotkeyWeather70
+)
+
+type Preset struct {
+	X, Y, H int
+}
+
+type CaptureConfig struct {
 	sync.Mutex
 	X, Y, H                 int
+	Presets                 map[string]Preset
 	AppRoot                 string
 	Recordings              string
 	FilterThreshold         int
@@ -32,37 +43,41 @@ type captureConfig struct {
 	LootRecordDiscriminator string
 	ActiveCharacter         int32
 	AutoUpload              bool
+	AbyssTypeOverride       bool
+	AbyssShipType           int
+	AbyssTier               int
+	AbyssWeather            string
 }
 
 // SetRecorderShortcut satisfies ShortcutSetter interface.
-func (c *captureConfig) SetRecorderShortcut(shorcutType int, s walk.Shortcut) {
+func (c *CaptureConfig) SetRecorderShortcut(shorcutType int, s walk.Shortcut) {
 	switch shorcutType {
-	case mainwindow.ShortcutRecorder:
+	case HotkeyRecoder:
 		c.RecorderShortcut = s
 		c.RecorderShortcutText = s.String()
 
-	case mainwindow.ShortcutWeather30:
+	case HotkeyWeather30:
 		c.Weather30Shortcut = s
 		c.Weather30ShortcutText = s.String()
 
-	case mainwindow.ShortcutWeather50:
+	case HotkeyWeather50:
 		c.Weather50Shortcut = s
 		c.Weather50ShortcutText = s.String()
 
-	case mainwindow.ShortcutWeather70:
+	case HotkeyWeather70:
 		c.Weather70Shortcut = s
 		c.Weather70ShortcutText = s.String()
 	}
 }
 
-// readConfig reads configuration from json file, or creates one if file doesn't exist
-func readConfig() (*captureConfig, error) {
+// Read reads configuration from json file, or creates one if file doesn't exist
+func Read() (*CaptureConfig, error) {
 	appDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		return nil, err
 	}
 
-	var c *captureConfig
+	var c *CaptureConfig
 
 	load := true
 	settingsFilename := filepath.Join(appDir, "settings.json")
@@ -82,14 +97,16 @@ func readConfig() (*captureConfig, error) {
 
 		eveGameLogsFolder := filepath.Join(usr.HomeDir, "Documents", "EVE", "logs", "Gamelogs")
 
-		c = &captureConfig{
+		c = &CaptureConfig{
 			AppRoot:                 appDir,
 			X:                       10,
 			Y:                       10,
 			H:                       400,
+			Presets:                 make(map[string]Preset),
 			Recordings:              filepath.Join(appDir, "recordings"),
 			FilterThreshold:         110,
 			FilteredPreview:         false,
+			AbyssTypeOverride:       false,
 			EVEGameLogsFolder:       eveGameLogsFolder,
 			RecorderShortcutText:    defaultRecorderShortcut.String(),
 			RecorderShortcut:        defaultRecorderShortcut,
@@ -100,6 +117,9 @@ func readConfig() (*captureConfig, error) {
 			Weather70ShortcutText:   defaultWeather70Shortcut.String(),
 			Weather70Shortcut:       defaultWeather70Shortcut,
 			LootRecordDiscriminator: "Quafe",
+			AbyssShipType:           1,
+			AbyssTier:               0,
+			AbyssWeather:            "Dark",
 		}
 		load = false
 	} else if err != nil {
@@ -141,13 +161,21 @@ func readConfig() (*captureConfig, error) {
 		if c.LootRecordDiscriminator == "" {
 			c.LootRecordDiscriminator = "Quafe"
 		}
+
+		if c.AbyssShipType == 0 {
+			c.AbyssShipType = 1
+		}
+
+		if c.AbyssWeather == "" {
+			c.AbyssWeather = "Dark"
+		}
 	}
 
 	return c, nil
 }
 
-// writeConfig saves configuration to json file
-func writeConfig(c *captureConfig) error {
+// Write saves configuration to json file
+func Write(c *CaptureConfig) error {
 	settingsFilename := filepath.Join(c.AppRoot, "settings.json")
 
 	f, err := os.Create(settingsFilename)

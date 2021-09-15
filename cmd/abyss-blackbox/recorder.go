@@ -15,6 +15,8 @@ import (
 	"github.com/lxn/walk"
 	"github.com/shivas/abyss-blackbox/combatlog"
 	"github.com/shivas/abyss-blackbox/encoding"
+	"github.com/shivas/abyss-blackbox/internal/config"
+	"github.com/shivas/abyss-blackbox/internal/version"
 )
 
 const (
@@ -28,7 +30,7 @@ type Recorder struct {
 	state               int
 	frameChan           chan *image.Paletted
 	loot                chan string
-	config              *captureConfig
+	config              *config.CaptureConfig
 	done                chan bool
 	frames              []*image.Paletted
 	delays              []int
@@ -41,7 +43,7 @@ type Recorder struct {
 }
 
 // NewRecorder constructs Recorder
-func NewRecorder(frameChan chan *image.Paletted, c *captureConfig, nc chan NotificationMessage, clr *combatlog.Reader) *Recorder {
+func NewRecorder(frameChan chan *image.Paletted, c *config.CaptureConfig, nc chan NotificationMessage, clr *combatlog.Reader) *Recorder {
 	return &Recorder{
 		frameChan:           frameChan,
 		loot:                make(chan string, 2),
@@ -121,6 +123,10 @@ func (r *Recorder) StartLoop() {
 				if r.state == RecorderRunning { // append to buffer
 					r.frames = append(r.frames, frame)
 					r.delays = append(r.delays, 10)
+
+					if r.weatherStrength == 0 && (len(r.frames)%180 == 0) { // remind every 3 minutes skipping initial frame
+						r.notificationChannel <- NotificationMessage{"Reminder", "Please record weather strength!"}
+					}
 				}
 				r.Unlock()
 			default:
@@ -218,6 +224,14 @@ func (r *Recorder) Stop() (string, error) {
 		TestServer:              r.config.TestServer,
 		WeatherStrength:         int32(r.weatherStrength),
 		LootRecordDiscriminator: r.config.LootRecordDiscriminator,
+		RecorderVersion:         version.RecorderVersion,
+		ManualAbyssTypeOverride: r.config.AbyssTypeOverride,
+	}
+
+	if r.config.AbyssTypeOverride {
+		abyssFile.AbyssShipType = encoding.AbyssRecording_AbyssShipType(r.config.AbyssShipType)
+		abyssFile.AbyssTier = int32(r.config.AbyssTier)
+		abyssFile.AbyssWheather = r.config.AbyssWeather
 	}
 
 	err = abyssFile.Encode(file)

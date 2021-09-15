@@ -1,6 +1,6 @@
 module github.com/shivas/abyss-blackbox
 
-go 1.13
+go 1.16
 
 require (
 	github.com/disintegration/gift v1.2.1
