@@ -31,6 +31,7 @@ type AbyssRecorderWindow struct {
 	CaptureWindowComboBox   *walk.ComboBox
 	CombatLogCharacterGroup *walk.GroupBox
 	CaptureSettingsGroup    *walk.GroupBox
+	CapturePreviewGroupBox  *walk.GroupBox
 	TestServer              *walk.CheckBox
 	CharacterSwitcherMenu   *walk.Menu
 	Toolbar                 *walk.ToolBar
@@ -38,6 +39,8 @@ type AbyssRecorderWindow struct {
 	SettingsAction          *walk.Action
 	PresetSwitcherMenu      *walk.Menu
 	PresetSaveButton        *walk.PushButton
+	PreviewScrollView       *walk.ScrollView
+	AbyssTypeToolbar        *walk.ToolBar
 }
 
 // NewAbyssRecorderWindow creates new main window of recorder.
@@ -179,18 +182,101 @@ func NewAbyssRecorderWindow(
 									},
 								},
 							},
-
-							GroupBox{
-								Title:     "Server flag:",
-								Layout:    VBox{},
+							Composite{
+								Layout:    HBox{MarginsZero: true},
 								Alignment: AlignHNearVNear,
 								Children: []Widget{
-									CheckBox{
-										AssignTo:  &obj.TestServer,
-										Text:      "Test Server (Singularity)",
-										Alignment: AlignHNearVNear,
-										Checked:   Bind("TestServer"),
+									GroupBox{
+										Title:              "Manual abyss type override",
+										Checkable:          true,
+										Checked:            Bind("AbyssTypeOverride"),
+										Layout:             VBox{},
+										AlwaysConsumeSpace: true,
+										Alignment:          AlignHNearVNear,
+										Children: []Widget{
+											ToolBar{
+												AssignTo:    &obj.AbyssTypeToolbar,
+												ButtonStyle: ToolBarButtonImageBeforeText,
+												Items: []MenuItem{
+													Menu{
+														Text: "Ship",
+														Items: []MenuItem{
+															Action{
+																Text: "Cruiser",
+															},
+															Action{
+																Text: "Destroyers",
+															},
+															Action{
+																Text: "Frigates",
+															},
+														},
+													},
+													Menu{
+														Text: "Tier",
+														Items: []MenuItem{
+															Action{
+																Text: "T0",
+															},
+															Action{
+																Text: "T1",
+															},
+															Action{
+																Text: "T2",
+															},
+															Action{
+																Text: "T3",
+															},
+															Action{
+																Text: "T4",
+															},
+															Action{
+																Text: "T5",
+															},
+															Action{
+																Text: "T6",
+															},
+														},
+													},
+													Menu{
+														Text: "Weather",
+														Items: []MenuItem{
+															Action{
+																Text: "Gamma",
+															},
+															Action{
+																Text: "Exotic",
+															},
+															Action{
+																Text: "Dark",
+															},
+															Action{
+																Text: "Firestorm",
+															},
+															Action{
+																Text: "Electrical",
+															},
+														},
+													},
+												},
+											},
+										},
 									},
+									HSpacer{},
+									GroupBox{
+										Title:     "Server flag:",
+										Layout:    VBox{},
+										Alignment: AlignHNearVNear,
+										Children: []Widget{
+											CheckBox{
+												AssignTo:  &obj.TestServer,
+												Text:      "Test Server (Singularity)",
+												Alignment: AlignHNearVNear,
+												Checked:   Bind("TestServer"),
+											},
+										},
+									},
+									//									HSpacer{},
 								},
 							},
 							GroupBox{
@@ -218,22 +304,26 @@ func NewAbyssRecorderWindow(
 						},
 					},
 					GroupBox{
-						Title:  "Captured region:",
-						Layout: VBox{},
+						Title:    "Captured region:",
+						Layout:   VBox{},
+						AssignTo: &obj.CapturePreviewGroupBox,
+						OnSizeChanged: func() {
+							h := obj.MainWindow.AsContainerBase().MinSizeHint()
+							c := obj.MainWindow.AsContainerBase().Size()
+							_ = obj.MainWindow.SetMinMaxSize(h, walk.Size{})
+							if c.Height > h.Height {
+								_ = obj.MainWindow.AsFormBase().WindowBase.SetSize(h)
+							}
+
+						},
 						Children: []Widget{
-							ScrollView{
-								Layout:          VBox{},
-								HorizontalFixed: true,
-								Children: []Widget{
-									CustomWidget{
-										AssignTo:            &obj.CaptureWidget,
-										MinSize:             Size{Width: 255, Height: 800},
-										Paint:               customWidgetPaintFunc,
-										InvalidatesOnResize: true,
-										ClearsBackground:    true,
-										DoubleBuffering:     true,
-									},
-								},
+							CustomWidget{
+								AssignTo:            &obj.CaptureWidget,
+								MinSize:             Size{Width: 255, Height: 1},
+								Paint:               customWidgetPaintFunc,
+								InvalidatesOnResize: true,
+								ClearsBackground:    true,
+								DoubleBuffering:     true,
 							},
 						},
 					},
@@ -275,6 +365,9 @@ func NewAbyssRecorderWindow(
 	obj.SettingsAction.Triggered().Attach(func() {
 		_, _ = RunAnimalDialog(obj.MainWindow, c, settingsChangedHandler)
 	})
+
+	chooser := NewAbyssTypeChooser(obj.AbyssTypeToolbar, c.(*config.CaptureConfig))
+	chooser.Init()
 
 	return &obj
 }

@@ -43,6 +43,10 @@ type CaptureConfig struct {
 	LootRecordDiscriminator string
 	ActiveCharacter         int32
 	AutoUpload              bool
+	AbyssTypeOverride       bool
+	AbyssShipType           int
+	AbyssTier               int
+	AbyssWeather            string
 }
 
 // SetRecorderShortcut satisfies ShortcutSetter interface.
@@ -102,6 +106,7 @@ func Read() (*CaptureConfig, error) {
 			Recordings:              filepath.Join(appDir, "recordings"),
 			FilterThreshold:         110,
 			FilteredPreview:         false,
+			AbyssTypeOverride:       false,
 			EVEGameLogsFolder:       eveGameLogsFolder,
 			RecorderShortcutText:    defaultRecorderShortcut.String(),
 			RecorderShortcut:        defaultRecorderShortcut,
@@ -112,6 +117,9 @@ func Read() (*CaptureConfig, error) {
 			Weather70ShortcutText:   defaultWeather70Shortcut.String(),
 			Weather70Shortcut:       defaultWeather70Shortcut,
 			LootRecordDiscriminator: "Quafe",
+			AbyssShipType:           1,
+			AbyssTier:               0,
+			AbyssWeather:            "Dark",
 		}
 		load = false
 	} else if err != nil {
@@ -152,6 +160,14 @@ func Read() (*CaptureConfig, error) {
 
 		if c.LootRecordDiscriminator == "" {
 			c.LootRecordDiscriminator = "Quafe"
+		}
+
+		if c.AbyssShipType == 0 {
+			c.AbyssShipType = 1
+		}
+
+		if c.AbyssWeather == "" {
+			c.AbyssWeather = "Dark"
 		}
 	}
 
