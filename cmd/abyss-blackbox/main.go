@@ -125,6 +125,7 @@ func main() {
 			armw.CombatLogCharacterGroup.SetEnabled(false)
 			armw.CaptureSettingsGroup.SetEnabled(false)
 			armw.TestServer.SetEnabled(false)
+			_ = armw.Toolbar.Actions().At(3).SetEnabled(false)
 			_ = armw.RecordingButton.SetText("Stop recording")
 		} else {
 			filename, errr := recorder.Stop()
@@ -149,6 +150,7 @@ func main() {
 			armw.CombatLogCharacterGroup.SetEnabled(true)
 			armw.CaptureSettingsGroup.SetEnabled(true)
 			armw.TestServer.SetEnabled(true)
+			_ = armw.Toolbar.Actions().At(3).SetEnabled(true)
 			_ = armw.RecordingButton.SetText("Start recording")
 		}
 	}

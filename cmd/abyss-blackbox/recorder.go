@@ -16,6 +16,7 @@ import (
 	"github.com/shivas/abyss-blackbox/combatlog"
 	"github.com/shivas/abyss-blackbox/encoding"
 	"github.com/shivas/abyss-blackbox/internal/config"
+	"github.com/shivas/abyss-blackbox/internal/version"
 )
 
 const (
@@ -223,6 +224,14 @@ func (r *Recorder) Stop() (string, error) {
 		TestServer:              r.config.TestServer,
 		WeatherStrength:         int32(r.weatherStrength),
 		LootRecordDiscriminator: r.config.LootRecordDiscriminator,
+		RecorderVersion:         version.RecorderVersion,
+		ManualAbyssTypeOverride: r.config.AbyssTypeOverride,
+	}
+
+	if r.config.AbyssTypeOverride {
+		abyssFile.AbyssShipType = encoding.AbyssRecording_AbyssShipType(r.config.AbyssShipType)
+		abyssFile.AbyssTier = int32(r.config.AbyssTier)
+		abyssFile.AbyssWheather = r.config.AbyssWeather
 	}
 
 	err = abyssFile.Encode(file)
