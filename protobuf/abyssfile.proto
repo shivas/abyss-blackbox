@@ -7,12 +7,25 @@ option go_package = "github.com/shivas/abyss-blackbox/encoding";
 import "combatlog.proto";
 
 message AbyssRecording {
+
+  enum AbyssShipType {
+    UNKNOWN_SHIP = 0;
+    CRUISER = 1;
+    DESTROYER = 2;
+    FRIGATE = 3;
+}
+
   bytes overview = 1;
   repeated LootRecord loot = 2;
   repeated combatlog.CombatLogRecord combat_log = 3;
   bool test_server = 4;
   int32 weather_strength = 5;
   string loot_record_discriminator = 6;
+  bool manual_abyss_type_override = 7;
+  AbyssShipType abyss_ship_type = 8;
+  string abyss_wheather = 9;
+  int32 abyss_tier = 10;
+  string recorder_version = 99;
 }
 
 message LootRecord {
