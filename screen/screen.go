@@ -1,4 +1,4 @@
-// +build windows
+//go:build windows
 
 package screen
 
@@ -13,14 +13,6 @@ import (
 	"github.com/disintegration/gift"
 	"golang.org/x/sys/windows"
 )
-
-func init() {
-	// We need to call SetProcessDpiAwareness so that Windows API calls will
-	// tell us the scale factor for our monitor so that our screenshot works
-	// on hi-res displays.
-	// PROCESS_PER_MONITOR_DPI_AWARE
-	procSetProcessDpiAwareness.Call(uintptr(2)) //nolint:errcheck // no needed
-}
 
 func CaptureWindowArea(handle syscall.Handle, rect image.Rectangle) (image.Image, error) {
 	return captureWindow(handle, rect)
@@ -45,9 +37,6 @@ var (
 
 	// procGetDeviceCaps          = modGdi32.NewProc("GetDeviceCaps")
 	procSelectObject = modGdi32.NewProc("SelectObject")
-
-	modShcore                  = syscall.NewLazyDLL("Shcore.dll")
-	procSetProcessDpiAwareness = modShcore.NewProc("SetProcessDpiAwareness")
 )
 
 const (

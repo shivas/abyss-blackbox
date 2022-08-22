@@ -50,3 +50,19 @@ tasks:
         sh: git describe --tags --always
       GO_VERSION:
         sh: go env GOVERSION
+
+  win7:
+    desc: Builds artifacts for release
+    deps: [install-deps, resources]
+    env:
+      GOARCH: 386
+    cmds:
+      - go generate ./...
+      - go build -trimpath -ldflags="-H windowsgui -s -w -X github.com/shivas/abyss-blackbox/internal/version.RecorderVersion={{.GIT_VERSION}} -X github.com/shivas/abyss-blackbox/internal/version.GoVersion={{.GO_VERSION}}" -o abyss-blackbox32.exe ./cmd/abyss-blackbox 
+      - go build -trimpath -ldflags="-s -w" ./cmd/extract/
+    vars:
+      GIT_VERSION:
+        sh: git describe --tags --always
+      GO_VERSION:
+        sh: go env GOVERSION
+          
