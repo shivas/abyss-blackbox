@@ -15,6 +15,7 @@ import (
 	"github.com/shivas/abyss-blackbox/combatlog"
 	"github.com/shivas/abyss-blackbox/internal/charmanager"
 	"github.com/shivas/abyss-blackbox/internal/config"
+	"github.com/shivas/abyss-blackbox/internal/fittings"
 	"github.com/shivas/abyss-blackbox/internal/mainwindow"
 	"github.com/shivas/abyss-blackbox/internal/uploader"
 	"github.com/shivas/abyss-blackbox/screen"
@@ -61,7 +62,7 @@ func main() {
 	actions := make(map[string]walk.EventHandler)
 	actions["add_character"] = charManager.EventHandlerCharAdd
 
-	armw := mainwindow.NewAbyssRecorderWindow(currentSettings, drawStuff, comboModel, actions, clr)
+	armw := mainwindow.NewAbyssRecorderWindow(currentSettings, drawStuff, comboModel, actions, clr, fittings.NewManager())
 	_ = charManager.MainWindow(armw).LoadCache() // assign window to control widgets
 	charManager.RefreshUI()
 
@@ -100,29 +101,25 @@ func main() {
 
 	recordingButtonHandler := func() {
 		if recorder.Status() == RecorderStopped {
-			charsChecked := []string{}
+			if runnerModel, ok := armw.RunnerTableView.Model().(*mainwindow.RunnerModel); ok {
+				checkedChars := runnerModel.GetCheckedCharacters()
 
-			checkboxes := armw.CombatLogCharacterGroup.Children()
-			for i := 0; i < checkboxes.Len(); i++ {
-				cb, ok := checkboxes.At(i).(*walk.CheckBox)
-				if !ok {
-					continue
+				if len(checkedChars) == 0 {
+					walk.MsgBox(armw.MainWindow, "No characters selected", "Please choose atleast one character to capture combat log", walk.MsgBoxIconWarning)
+					return
 				}
 
-				if cb.Checked() {
-					charsChecked = append(charsChecked, cb.Text())
+				if len(checkedChars) > 3 {
+					walk.MsgBox(armw.MainWindow, "Too much characters selected", "Please choose up-to 3 characters to capture combat log", walk.MsgBoxIconWarning)
+					return
 				}
-			}
 
-			if len(charsChecked) == 0 {
-				walk.MsgBox(armw.MainWindow, "No characters selected", "Please choose atleast one character to capture combat log", walk.MsgBoxIconWarning)
-				return
+				recorder.Start(checkedChars)
 			}
-
-			recorder.Start(charsChecked)
 
 			_ = armw.MainWindow.Menu().Actions().At(0).SetVisible(false)
-			armw.CombatLogCharacterGroup.SetEnabled(false)
+			armw.RunnerCharacterGroup.SetEnabled(false)
+			armw.RunnerTableView.SetEnabled(false)
 			armw.CaptureSettingsGroup.SetEnabled(false)
 			armw.TestServer.SetEnabled(false)
 			_ = armw.Toolbar.Actions().At(3).SetEnabled(false)
@@ -147,7 +144,8 @@ func main() {
 			}
 
 			_ = armw.MainWindow.Menu().Actions().At(0).SetVisible(true)
-			armw.CombatLogCharacterGroup.SetEnabled(true)
+			armw.RunnerCharacterGroup.SetEnabled(true)
+			armw.RunnerTableView.SetEnabled(true)
 			armw.CaptureSettingsGroup.SetEnabled(true)
 			armw.TestServer.SetEnabled(true)
 			_ = armw.Toolbar.Actions().At(3).SetEnabled(true)

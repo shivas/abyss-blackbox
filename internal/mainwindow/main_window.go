@@ -1,6 +1,7 @@
 package mainwindow
 
 import (
+	"fmt"
 	"log"
 	"syscall"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"github.com/lxn/win"
 	"github.com/shivas/abyss-blackbox/combatlog"
 	"github.com/shivas/abyss-blackbox/internal/config"
+	"github.com/shivas/abyss-blackbox/internal/fittings"
 )
 
 const presetToolbarAction = 3
@@ -20,27 +22,30 @@ type WindowComboBoxItem struct {
 }
 
 type AbyssRecorderWindow struct {
-	MainWindow              *walk.MainWindow
-	FilteredPreview         *walk.CheckBox
-	DataBinder              *walk.DataBinder
-	CaptureWidget           *walk.CustomWidget
-	XSetting                *walk.NumberEdit
-	YSetting                *walk.NumberEdit
-	HSetting                *walk.NumberEdit
-	RecordingButton         *walk.PushButton
-	CaptureWindowComboBox   *walk.ComboBox
-	CombatLogCharacterGroup *walk.GroupBox
-	CaptureSettingsGroup    *walk.GroupBox
-	CapturePreviewGroupBox  *walk.GroupBox
-	TestServer              *walk.CheckBox
-	CharacterSwitcherMenu   *walk.Menu
-	Toolbar                 *walk.ToolBar
-	AutoUploadCheckbox      *walk.CheckBox
-	SettingsAction          *walk.Action
-	PresetSwitcherMenu      *walk.Menu
-	PresetSaveButton        *walk.PushButton
-	PreviewScrollView       *walk.ScrollView
-	AbyssTypeToolbar        *walk.ToolBar
+	MainWindow             *walk.MainWindow
+	FilteredPreview        *walk.CheckBox
+	DataBinder             *walk.DataBinder
+	CaptureWidget          *walk.CustomWidget
+	XSetting               *walk.NumberEdit
+	YSetting               *walk.NumberEdit
+	HSetting               *walk.NumberEdit
+	RecordingButton        *walk.PushButton
+	CaptureWindowComboBox  *walk.ComboBox
+	RunnerCharacterGroup   *walk.GroupBox
+	RunnerTableView        *walk.TableView
+	CaptureSettingsGroup   *walk.GroupBox
+	CapturePreviewGroupBox *walk.GroupBox
+	TestServer             *walk.CheckBox
+	CharacterSwitcherMenu  *walk.Menu
+	Toolbar                *walk.ToolBar
+	AutoUploadCheckbox     *walk.CheckBox
+	SettingsAction         *walk.Action
+	PresetSwitcherMenu     *walk.Menu
+	PresetSaveButton       *walk.PushButton
+	PreviewScrollView      *walk.ScrollView
+	AbyssTypeToolbar       *walk.ToolBar
+	ManageFittingsButton   *walk.PushButton
+	FittingManager         *fittings.FittingsManager
 }
 
 // NewAbyssRecorderWindow creates new main window of recorder.
@@ -50,8 +55,9 @@ func NewAbyssRecorderWindow(
 	comboBoxModel []*WindowComboBoxItem,
 	actions map[string]walk.EventHandler,
 	clr *combatlog.Reader,
+	fm *fittings.FittingsManager,
 ) *AbyssRecorderWindow {
-	obj := AbyssRecorderWindow{}
+	obj := AbyssRecorderWindow{FittingManager: fm}
 
 	if err := (MainWindow{
 		AssignTo: &obj.MainWindow,
@@ -280,11 +286,42 @@ func NewAbyssRecorderWindow(
 								},
 							},
 							GroupBox{
-								Title:              "Capture combatlog of characters:",
-								Layout:             VBox{},
-								Alignment:          AlignHNearVNear,
-								AssignTo:           &obj.CombatLogCharacterGroup,
-								Children:           []Widget{},
+								Title:     "Capture combatlog of characters:",
+								Layout:    VBox{},
+								Alignment: AlignHNearVNear,
+								AssignTo:  &obj.RunnerCharacterGroup,
+								Children: []Widget{
+									TableView{
+										AssignTo:                    &obj.RunnerTableView,
+										AlternatingRowBG:            false,
+										CheckBoxes:                  true,
+										ColumnsOrderable:            true,
+										MultiSelection:              false,
+										SelectionHiddenWithoutFocus: true,
+										AlwaysConsumeSpace:          true,
+										MinSize:                     Size{Height: 200},
+										LastColumnStretched:         true,
+										CustomRowHeight:             34,
+										Columns: []TableViewColumn{
+											{Title: "Pilot", Width: 200},
+											{Title: "Ship"},
+											{Title: "Fitting name"},
+										},
+										OnSelectedIndexesChanged: func() {
+											fmt.Printf("SelectedIndexes: %v\n", obj.RunnerTableView.SelectedIndexes())
+										},
+										OnCurrentIndexChanged: func() {
+											fmt.Printf("onCurrentIndexChanged: %v\n", obj.RunnerTableView.CurrentIndex())
+										},
+									},
+									PushButton{
+										AssignTo: &obj.ManageFittingsButton,
+										Text:     "Manage fittings",
+										OnClicked: func() {
+											RunManageFittingsDialog(obj.MainWindow, nil)
+										},
+									},
+								},
 								AlwaysConsumeSpace: true,
 								MinSize:            Size{Height: 20},
 							},
@@ -314,7 +351,6 @@ func NewAbyssRecorderWindow(
 							if c.Height > h.Height {
 								_ = obj.MainWindow.AsFormBase().WindowBase.SetSize(h)
 							}
-
 						},
 						Children: []Widget{
 							CustomWidget{
@@ -336,8 +372,9 @@ func NewAbyssRecorderWindow(
 
 	logFiles, _ := clr.GetLogFiles(time.Now(), time.Duration(24)*time.Hour)
 
-	charMap := clr.MapCharactersToFiles(logFiles)
-	buildRunnerList(charMap, obj.CombatLogCharacterGroup)
+	runnerModel := NewRunnerModel(clr.MapCharactersToFiles(logFiles), fm)
+	_ = obj.RunnerTableView.SetModel(runnerModel)
+	obj.RunnerTableView.SetCellStyler(runnerModel)
 
 	settingsChangedHandler := func(c *config.CaptureConfig) {
 		_ = config.Write(c)
@@ -348,7 +385,9 @@ func NewAbyssRecorderWindow(
 			return
 		}
 
-		buildRunnerList(clr.MapCharactersToFiles(logFiles), obj.CombatLogCharacterGroup)
+		runnerModel := NewRunnerModel(clr.MapCharactersToFiles(logFiles), fm)
+		_ = obj.RunnerTableView.SetModel(runnerModel)
+		obj.RunnerTableView.SetCellStyler(runnerModel)
 
 		// rebind hotkeys
 		win.UnregisterHotKey(obj.MainWindow.Handle(), config.HotkeyRecoder)
@@ -363,7 +402,7 @@ func NewAbyssRecorderWindow(
 	}
 
 	obj.SettingsAction.Triggered().Attach(func() {
-		_, _ = RunAnimalDialog(obj.MainWindow, c, settingsChangedHandler)
+		_, _ = RunSettingsDialog(obj.MainWindow, c, settingsChangedHandler)
 	})
 
 	chooser := NewAbyssTypeChooser(obj.AbyssTypeToolbar, c.(*config.CaptureConfig))
@@ -400,21 +439,5 @@ func (m *AbyssRecorderWindow) RefreshPresets(c *config.CaptureConfig) {
 		_ = m.Toolbar.Actions().At(presetToolbarAction).SetEnabled(true)
 	} else {
 		_ = m.Toolbar.Actions().At(presetToolbarAction).SetEnabled(false)
-	}
-}
-
-func buildRunnerList(characters map[string]combatlog.CombatLogFile, parent walk.Container) {
-	for i := 0; i < parent.Children().Len(); i++ {
-		w := parent.Children().At(i)
-		w.SetVisible(false)
-	}
-
-	for charName := range characters {
-		cb, _ := walk.NewCheckBox(parent)
-		_ = cb.SetText(charName)
-		_ = cb.SetMinMaxSize(walk.Size{Width: 400}, walk.Size{Width: 800})
-		_ = cb.SetAlignment(walk.AlignHNearVCenter)
-		cb.SetChecked(false)
-		_ = parent.Children().Add(cb)
 	}
 }

@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-const injestURL = "https://abyssal.space/action/ingest-autoupload"
+const ingestURL = "https://abyssal.space/action/ingest-autoupload"
 
 func Upload(filename, token string) (name string, err error) {
 	f, err := os.Open(filename)
@@ -22,7 +22,7 @@ func Upload(filename, token string) (name string, err error) {
 
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, "POST", injestURL, f)
+	req, err := http.NewRequestWithContext(ctx, "POST", ingestURL, f)
 	if err != nil {
 		return filename, err
 	}
