@@ -16,6 +16,7 @@ import (
 	"github.com/shivas/abyss-blackbox/combatlog"
 	"github.com/shivas/abyss-blackbox/encoding"
 	"github.com/shivas/abyss-blackbox/internal/config"
+	"github.com/shivas/abyss-blackbox/internal/fittings"
 	"github.com/shivas/abyss-blackbox/internal/version"
 )
 
@@ -26,7 +27,7 @@ const (
 )
 
 type Recorder struct {
-	sync.Mutex
+	mutex               sync.Mutex
 	state               int
 	frameChan           chan *image.Paletted
 	loot                chan string
@@ -82,8 +83,8 @@ func (r *Recorder) GetWeatherStrengthListener(strength int) func() {
 			return
 		}
 
-		r.Lock()
-		defer r.Unlock()
+		r.mutex.Lock()
+		defer r.mutex.Unlock()
 		r.weatherStrength = strength
 		r.notificationChannel <- NotificationMessage{Title: "Abyssal.Space recorder", Message: fmt.Sprintf("Weather strength set to: %d%%", strength)}
 	}
@@ -98,7 +99,7 @@ func (r *Recorder) StartLoop() {
 				return // exit loop
 
 			case lootSnapshot := <-r.loot:
-				r.Lock()
+				r.mutex.Lock()
 
 				switch r.state {
 				case RecorderAwaitingInitialLoot:
@@ -116,10 +117,10 @@ func (r *Recorder) StartLoop() {
 					log.Printf("dropped loot record, %v", lootSnapshot)
 				}
 
-				r.Unlock()
+				r.mutex.Unlock()
 
 			case frame := <-r.frameChan:
-				r.Lock()
+				r.mutex.Lock()
 				if r.state == RecorderRunning { // append to buffer
 					r.frames = append(r.frames, frame)
 					r.delays = append(r.delays, 10)
@@ -128,7 +129,7 @@ func (r *Recorder) StartLoop() {
 						r.notificationChannel <- NotificationMessage{"Reminder", "Please record weather strength!"}
 					}
 				}
-				r.Unlock()
+				r.mutex.Unlock()
 			default:
 				time.Sleep(1 * time.Millisecond)
 			}
@@ -138,8 +139,8 @@ func (r *Recorder) StartLoop() {
 
 // Start recording of abyssal run
 func (r *Recorder) Start(characters []string) {
-	r.Lock()
-	defer r.Unlock()
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 
 	// make sure recordings folder exists
 	_, err := os.Stat(r.config.Recordings)
@@ -183,13 +184,31 @@ func (r *Recorder) Start(characters []string) {
 }
 
 // Stop stops recording and writes .abyss file if frames captured
-func (r *Recorder) Stop() (string, error) {
-	r.Lock()
-	defer r.Unlock()
+func (r *Recorder) Stop(fm *fittings.FittingsManager) (string, error) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 
 	if len(r.frames) == 0 {
 		r.state = RecorderStopped
 		return r.recordingName, fmt.Errorf("there was no frames captured, skipping recording of abyss run")
+	}
+
+	runFittings := make(map[string]*encoding.Fit, len(r.charactersTracking))
+
+	for char := range r.charactersTracking {
+		fit := fm.GetFittingForPilot(char)
+		if fit != nil {
+			runFittings[char] = &encoding.Fit{
+				Source:      fit.Source,
+				ForeignID:   fit.ForeignID,
+				FittingName: fit.FittingName,
+				EFT:         fit.EFT,
+				FFH:         fit.FFH,
+				Price:       fit.Price,
+				ShipName:    fit.ShipName,
+				ShipTypeID:  fit.ShipTypeID,
+			}
+		}
 	}
 
 	file, _ := os.Create(r.recordingName)
@@ -226,6 +245,7 @@ func (r *Recorder) Stop() (string, error) {
 		LootRecordDiscriminator: r.config.LootRecordDiscriminator,
 		RecorderVersion:         version.RecorderVersion,
 		ManualAbyssTypeOverride: r.config.AbyssTypeOverride,
+		Fittings:                runFittings,
 	}
 
 	if r.config.AbyssTypeOverride {
@@ -234,8 +254,7 @@ func (r *Recorder) Stop() (string, error) {
 		abyssFile.AbyssWheather = r.config.AbyssWeather
 	}
 
-	err = abyssFile.Encode(file)
-	return r.recordingName, err
+	return r.recordingName, abyssFile.Encode(file)
 }
 
 // StopLoop stops main recording loop
@@ -245,8 +264,8 @@ func (r *Recorder) StopLoop() {
 
 // Status returns status of recorder
 func (r *Recorder) Status() int {
-	r.Lock()
-	defer r.Unlock()
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 
 	return r.state
 }

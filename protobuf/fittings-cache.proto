@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package protobuf;
+
+option go_package = "github.com/shivas/abyss-blackbox/internal/fittings";
+
+message FittingsCache {
+    repeated FittingRecord fittings = 1;
+    map<string, FittingRecord> charactersFittings = 2;
+    int32 version = 3;
+}
+
+message FittingRecord {
+  string source = 1;
+  optional string foreignID = 2;
+  string fittingName = 3;
+  string EFT = 4;
+  string FFH = 5;
+  double price = 6;
+  string shipName = 7;
+  int32 shipTypeID = 8;
+  bytes icon = 9;
+}

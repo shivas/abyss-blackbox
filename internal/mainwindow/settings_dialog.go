@@ -13,7 +13,7 @@ type ShortcutSetter interface {
 	SetRecorderShortcut(int, walk.Shortcut)
 }
 
-func RunAnimalDialog(owner walk.Form, conf interface{}, onSettingsSubmit func(c *config.CaptureConfig)) (int, error) {
+func RunSettingsDialog(owner walk.Form, conf interface{}, onSettingsSubmit func(c *config.CaptureConfig)) (int, error) {
 	var (
 		dlg                           *walk.Dialog
 		db                            *walk.DataBinder

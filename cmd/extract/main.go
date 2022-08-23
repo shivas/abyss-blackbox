@@ -53,6 +53,14 @@ func main() {
 		fmt.Println("Recording is from Live server (tranquility)")
 	}
 
+	for pilot, fit := range abyssFile.Fittings {
+		fmt.Printf("Pilot with fit: %q\n", pilot)
+		fmt.Println("----------")
+		fmt.Printf("fit:\n%s\n", fit.EFT)
+		fmt.Println("----------")
+		fmt.Printf("Name: %q, FFH: %s, ShipName: %q ShipTypeID: %d, Price: %2f\n", fit.FittingName, fit.FFH, fit.ShipName, fit.ShipTypeID, fit.Price)
+	}
+
 	fmt.Printf("Recorded weather strength: %d%% and loot record discriminator: %q\n", abyssFile.WeatherStrength, abyssFile.LootRecordDiscriminator)
 
 	for _, logRecord := range abyssFile.CombatLog {

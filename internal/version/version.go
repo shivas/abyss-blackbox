@@ -1,4 +1,6 @@
 package version
 
-var RecorderVersion string
-var GoVersion string
+var (
+	RecorderVersion string
+	GoVersion       string
+)
