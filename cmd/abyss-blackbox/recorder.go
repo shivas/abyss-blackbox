@@ -200,7 +200,7 @@ func (r *Recorder) Stop(fm *fittings.FittingsManager) (string, error) {
 		if fit != nil {
 			runFittings[char] = &encoding.Fit{
 				Source:      fit.Source,
-				RemoteID:    fit.RemoteID,
+				ForeignID:   fit.ForeignID,
 				FittingName: fit.FittingName,
 				EFT:         fit.EFT,
 				FFH:         fit.FFH,

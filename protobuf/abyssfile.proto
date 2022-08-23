@@ -36,7 +36,7 @@ message LootRecord {
 
 message Fit {
   string source = 1;
-  optional string remoteID = 2;
+  optional string foreignID = 2;
   string fittingName = 3;
   string EFT = 4;
   string FFH = 5;
