@@ -20,10 +20,12 @@ func RunManageFittingsDialog(owner walk.Form, conf interface{}, fm *fittings.Fit
 		clearAssignmentsButton *walk.PushButton
 		importGroupBox         *walk.GroupBox
 		assignMenu             *walk.Menu
+		unassignMenu           *walk.Menu
 		fittingsModel          *fittings.FittingsModel
 	)
 
 	pilotActions := make([]MenuItem, 0)
+	pilotUnassignActions := make([]MenuItem, 0)
 
 	sort.Strings(pilots)
 
@@ -31,7 +33,6 @@ func RunManageFittingsDialog(owner walk.Form, conf interface{}, fm *fittings.Fit
 		name := name
 
 		pilotActions = append(pilotActions, Action{
-
 			Text: name,
 			OnTriggered: func() {
 				if fittingsView.CurrentIndex() < 0 {
@@ -47,6 +48,14 @@ func RunManageFittingsDialog(owner walk.Form, conf interface{}, fm *fittings.Fit
 				fmt.Printf("Assigned fit: %q to character: %q\n", fit.FittingName, name)
 			},
 		})
+
+		pilotUnassignActions = append(pilotUnassignActions, Action{
+			Text: name,
+			OnTriggered: func() {
+				fm.AssignFittingToCharacter(nil, name)
+				fmt.Printf("Unassigned fit for character: %q\n", name)
+			},
+		})
 	}
 
 	fittingsModel = fm.Model()
@@ -60,7 +69,7 @@ func RunManageFittingsDialog(owner walk.Form, conf interface{}, fm *fittings.Fit
 			AssignTo:   &db,
 			DataSource: conf,
 			OnSubmitted: func() {
-				fm.PersistCache()
+				_ = fm.PersistCache()
 				fmt.Printf("fittings saved")
 			},
 		},
@@ -78,10 +87,10 @@ func RunManageFittingsDialog(owner walk.Form, conf interface{}, fm *fittings.Fit
 						ColumnsOrderable:            true,
 						MultiSelection:              false,
 						SelectionHiddenWithoutFocus: true,
-						//						AlwaysConsumeSpace:          true,
-						MinSize:             Size{Height: 200},
-						LastColumnStretched: true,
-						CustomRowHeight:     34,
+						AlwaysConsumeSpace:          true,
+						MinSize:                     Size{Height: 200, Width: 500},
+						LastColumnStretched:         true,
+						CustomRowHeight:             34,
 						Columns: []TableViewColumn{
 							{Title: "Fitting name"},
 							{Title: "Ship"},
@@ -92,6 +101,11 @@ func RunManageFittingsDialog(owner walk.Form, conf interface{}, fm *fittings.Fit
 								AssignTo: &assignMenu,
 								Text:     "Assign to pilot",
 								Items:    pilotActions,
+							},
+							Menu{
+								AssignTo: &unassignMenu,
+								Text:     "Unassign pilot fitting",
+								Items:    pilotUnassignActions,
 							},
 							Separator{},
 							Action{
@@ -130,15 +144,12 @@ func RunManageFittingsDialog(owner walk.Form, conf interface{}, fm *fittings.Fit
 												return
 											}
 
-											id, _, err := fm.AddFitting(&fittings.FittingRecord{Source: "manual", EFT: eft})
+											_, _, err = fm.AddFitting(&fittings.FittingRecord{Source: "manual", EFT: eft})
 											if err != nil {
-												log.Printf("error importing fitting %v\n", err)
+												walk.MsgBox(dlg, "Error importing EFT from clipboard", err.Error(), walk.MsgBoxIconWarning)
 											}
 
-											fmt.Printf("added fitting: %d\n", id)
-											fittingsView.SetSelectedIndexes([]int{id})
 											fittingsModel.PublishRowsReset()
-
 										},
 									},
 								},
@@ -149,6 +160,9 @@ func RunManageFittingsDialog(owner walk.Form, conf interface{}, fm *fittings.Fit
 								OnClicked: func() {
 									fm.ClearAssignments()
 								},
+							},
+							TextLabel{
+								Text: "To perform actions on fits, please use right-click!",
 							},
 						},
 					},

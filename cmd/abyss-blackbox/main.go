@@ -23,10 +23,12 @@ import (
 
 const EVEClientWindowRe = "^EVE -.*$"
 
-var previewChannel chan image.Image
-var recordingChannel chan *image.Paletted
-var notificationChannel chan NotificationMessage
-var recorder *Recorder
+var (
+	previewChannel      chan image.Image
+	recordingChannel    chan *image.Paletted
+	notificationChannel chan NotificationMessage
+	recorder            *Recorder
+)
 
 func main() {
 	var err error
@@ -66,19 +68,18 @@ func main() {
 	_ = charManager.MainWindow(armw).LoadCache() // assign window to control widgets
 	charManager.RefreshUI()
 
-	charManager.OnActivateCharacter =
-		func(char charmanager.Character) {
-			if char.CharacterID > 0 {
-				_ = armw.MainWindow.SetTitle("Abyssal.Space Blackbox Recorder - " + char.CharacterName)
-			}
-
-			notificationChannel <- NotificationMessage{Title: "Active character set to:", Message: char.CharacterName}
-
-			currentSettings.ActiveCharacter = char.CharacterID
-			armw.AutoUploadCheckbox.SetEnabled(char.CharacterID > 0)
-
-			_ = config.Write(currentSettings)
+	charManager.OnActivateCharacter = func(char charmanager.Character) {
+		if char.CharacterID > 0 {
+			_ = armw.MainWindow.SetTitle("Abyssal.Space Blackbox Recorder - " + char.CharacterName)
 		}
+
+		notificationChannel <- NotificationMessage{Title: "Active character set to:", Message: char.CharacterName}
+
+		currentSettings.ActiveCharacter = char.CharacterID
+		armw.AutoUploadCheckbox.SetEnabled(char.CharacterID > 0)
+
+		_ = config.Write(currentSettings)
+	}
 
 	_ = charManager.SetActiveCharacter(currentSettings.ActiveCharacter)
 
@@ -120,12 +121,13 @@ func main() {
 			_ = armw.MainWindow.Menu().Actions().At(0).SetVisible(false)
 			armw.RunnerCharacterGroup.SetEnabled(false)
 			armw.RunnerTableView.SetEnabled(false)
+			armw.ManageFittingsButton.SetEnabled(false)
 			armw.CaptureSettingsGroup.SetEnabled(false)
 			armw.TestServer.SetEnabled(false)
 			_ = armw.Toolbar.Actions().At(3).SetEnabled(false)
 			_ = armw.RecordingButton.SetText("Stop recording")
 		} else {
-			filename, errr := recorder.Stop()
+			filename, errr := recorder.Stop(armw.FittingManager)
 			if errr != nil {
 				walk.MsgBox(armw.MainWindow, "Error writing recording", errr.Error(), walk.MsgBoxIconWarning)
 			}
@@ -146,6 +148,7 @@ func main() {
 			_ = armw.MainWindow.Menu().Actions().At(0).SetVisible(true)
 			armw.RunnerCharacterGroup.SetEnabled(true)
 			armw.RunnerTableView.SetEnabled(true)
+			armw.ManageFittingsButton.SetEnabled(true)
 			armw.CaptureSettingsGroup.SetEnabled(true)
 			armw.TestServer.SetEnabled(true)
 			_ = armw.Toolbar.Actions().At(3).SetEnabled(true)
@@ -309,7 +312,7 @@ func paletted(img *image.NRGBA, cutoff uint32) *image.Paletted {
 	palette := []color.Color{color.White, color.Black}
 	buffimg := image.NewPaletted(img.Rect, palette)
 
-	var threshold = cutoff << 8
+	threshold := cutoff << 8
 
 	for y := 0; y < img.Rect.Dy(); y++ {
 		for x := 0; x < img.Rect.Dx(); x++ {

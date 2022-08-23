@@ -14,9 +14,11 @@ import (
 
 //go:generate protoc -I ../../protobuf/ --go_opt=module=github.com/shivas/abyss-blackbox/internal/fittings --go_out=. fittings-cache.proto
 
-const cacheFileName = "fittings.db"
-const iconSize = 32
-const version = 1
+const (
+	cacheFileName = "fittings.db"
+	iconSize      = 32
+	version       = 1
+)
 
 type FittingsManager struct {
 	sync.Mutex
@@ -101,7 +103,7 @@ func (m *FittingsManager) PersistCache() error {
 		return err
 	}
 
-	err = os.WriteFile(file, data, 0600)
+	err = os.WriteFile(file, data, 0o600)
 
 	return err
 }

@@ -4,7 +4,7 @@ package protobuf;
 
 option go_package = "github.com/shivas/abyss-blackbox/encoding";
 
-import "combatlog.proto";
+import "protobuf/combatlog.proto";
 
 message AbyssRecording {
 
@@ -25,10 +25,22 @@ message AbyssRecording {
   AbyssShipType abyss_ship_type = 8;
   string abyss_wheather = 9;
   int32 abyss_tier = 10;
+  map <string, Fit> fittings = 11;
   string recorder_version = 99;
 }
 
 message LootRecord {
   int32 frame = 1;
   string loot = 2;
+}
+
+message Fit {
+  string source = 1;
+  optional string remoteID = 2;
+  string fittingName = 3;
+  string EFT = 4;
+  string FFH = 5;
+  double price = 6;
+  string shipName = 7;
+  int32 shipTypeID = 8;
 }

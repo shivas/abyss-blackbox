@@ -34,12 +34,16 @@ func NewRunnerModel(characters map[string]combatlog.CombatLogFile, fm *fittings.
 	m := new(RunnerModel)
 	m.fm = fm
 	m.characters = characters
+
 	fnt, err := walk.NewFont("MS Shell Dlg 2", 8, 0)
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	m.font = fnt
+
 	m.RefreshList()
+
 	return m
 }
 
@@ -57,6 +61,7 @@ func (m *RunnerModel) RefreshList() {
 
 		i++
 	}
+
 	m.PublishRowsReset()
 	_ = m.Sort(m.sortColumn, m.sortOrder)
 }
@@ -120,26 +125,28 @@ func (m *RunnerModel) Sort(col int, order walk.SortOrder) error {
 func (m *RunnerModel) StyleCell(style *walk.CellStyle) {
 	item := m.items[style.Row()]
 
-	//	if item.checked {
-	if style.Row()%2 == 0 {
-		style.BackgroundColor = walk.RGB(255, 255, 255)
+	if item.checked {
+		style.BackgroundColor = walk.RGB(235, 255, 235)
 	} else {
-		style.BackgroundColor = walk.RGB(244, 244, 244)
+		if style.Row()%2 == 0 {
+			style.BackgroundColor = walk.RGB(255, 255, 255)
+		} else {
+			style.BackgroundColor = walk.RGB(244, 244, 244)
+		}
 	}
-	// }
 
 	if style.Col() == 1 {
 		if canvas := style.Canvas(); canvas != nil {
 			bounds := style.Bounds()
 			bounds.Height = 32
 			bounds.Width = 32
-			canvas.DrawBitmapWithOpacity(item.ShipBitmap, bounds, 255)
+			_ = canvas.DrawBitmapWithOpacityPixels(item.ShipBitmap, bounds, 255)
 
 			bounds = style.Bounds()
 			bounds.X += 34
 			bounds.Y += 10
 			bounds.Width -= 34
-			canvas.DrawText(item.ShipType, m.font, 0, bounds, walk.TextLeft)
+			_ = canvas.DrawTextPixels(item.ShipType, m.font, 0, bounds, walk.TextLeft)
 		}
 	}
 }

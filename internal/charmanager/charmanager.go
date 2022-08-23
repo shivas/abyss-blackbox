@@ -104,7 +104,7 @@ func (c *CharManager) PersistCache() error {
 		return err
 	}
 
-	err = os.WriteFile(file, data, 0600)
+	err = os.WriteFile(file, data, 0o600)
 
 	return err
 }
@@ -234,7 +234,7 @@ func (c *CharManager) RefreshUI() {
 	_ = c.mainWindow.CharacterSwitcherMenu.Actions().Clear()
 
 	for _, char := range c.characters {
-		var char = char
+		char := char
 
 		action := walk.NewAction()
 		_ = action.SetText(char.CharacterName)

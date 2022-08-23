@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"embed"
 	"image"
-	_ "image/png"
+	_ "image/png" //nolint:revive,stylecheck // side effects
 
 	"github.com/lxn/walk"
 	"github.com/shivas/abyss-blackbox/internal/config"
@@ -61,34 +61,40 @@ func (a *AbyssTypeChooser) Init() {
 	for i, s := range a.shipTypes {
 		s := s
 		shipType := i + 1
+
 		if shipType == a.cfg.AbyssShipType {
-			a.toolbar.Actions().At(0).SetText(s.Title)
-			a.toolbar.Actions().At(0).SetImage(s.Icon)
+			_ = a.toolbar.Actions().At(0).SetText(s.Title)
+			_ = a.toolbar.Actions().At(0).SetImage(s.Icon)
 		}
-		a.toolbar.Actions().At(0).Menu().Actions().At(i).SetText(s.Title)
-		a.toolbar.Actions().At(0).Menu().Actions().At(i).SetImage(s.Icon)
-		a.toolbar.Actions().At(0).Menu().Actions().At(i).Triggered().Attach(func() {
-			a.toolbar.Actions().At(0).SetText(s.Title)
-			a.toolbar.Actions().At(0).SetImage(s.Icon)
+
+		_ = a.toolbar.Actions().At(0).Menu().Actions().At(i).SetText(s.Title)
+		_ = a.toolbar.Actions().At(0).Menu().Actions().At(i).SetImage(s.Icon)
+		_ = a.toolbar.Actions().At(0).Menu().Actions().At(i).Triggered().Attach(func() {
+			_ = a.toolbar.Actions().At(0).SetText(s.Title)
+			_ = a.toolbar.Actions().At(0).SetImage(s.Icon)
 			a.cfg.AbyssShipType = shipType
-			config.Write(a.cfg)
+
+			_ = config.Write(a.cfg)
 		})
 	}
 
 	for i, s := range a.tiers {
 		s := s
 		tier := i
+
 		if i == a.cfg.AbyssTier {
-			a.toolbar.Actions().At(1).SetText(s.Title)
-			a.toolbar.Actions().At(1).SetImage(s.Icon)
+			_ = a.toolbar.Actions().At(1).SetText(s.Title)
+			_ = a.toolbar.Actions().At(1).SetImage(s.Icon)
 		}
-		a.toolbar.Actions().At(1).Menu().Actions().At(i).SetText(s.Title)
-		a.toolbar.Actions().At(1).Menu().Actions().At(i).SetImage(s.Icon)
-		a.toolbar.Actions().At(1).Menu().Actions().At(i).Triggered().Attach(func() {
-			a.toolbar.Actions().At(1).SetText(s.Title)
-			a.toolbar.Actions().At(1).SetImage(s.Icon)
+
+		_ = a.toolbar.Actions().At(1).Menu().Actions().At(i).SetText(s.Title)
+		_ = a.toolbar.Actions().At(1).Menu().Actions().At(i).SetImage(s.Icon)
+		_ = a.toolbar.Actions().At(1).Menu().Actions().At(i).Triggered().Attach(func() {
+			_ = a.toolbar.Actions().At(1).SetText(s.Title)
+			_ = a.toolbar.Actions().At(1).SetImage(s.Icon)
 			a.cfg.AbyssTier = tier
-			config.Write(a.cfg)
+
+			_ = config.Write(a.cfg)
 		})
 	}
 
@@ -97,18 +103,18 @@ func (a *AbyssTypeChooser) Init() {
 		weather := s.Title
 
 		if weather == a.cfg.AbyssWeather {
-			a.toolbar.Actions().At(2).SetText(s.Title)
-			a.toolbar.Actions().At(2).SetImage(s.Icon)
+			_ = a.toolbar.Actions().At(2).SetText(s.Title)
+			_ = a.toolbar.Actions().At(2).SetImage(s.Icon)
 		}
-		a.toolbar.Actions().At(2).Menu().Actions().At(i).SetText(s.Title)
-		a.toolbar.Actions().At(2).Menu().Actions().At(i).SetImage(s.Icon)
-		a.toolbar.Actions().At(2).Menu().Actions().At(i).Triggered().Attach(func() {
-			a.toolbar.Actions().At(2).SetText(s.Title)
-			a.toolbar.Actions().At(2).SetImage(s.Icon)
-			a.cfg.AbyssWeather = s.Title
-			config.Write(a.cfg)
-		})
 
+		_ = a.toolbar.Actions().At(2).Menu().Actions().At(i).SetText(s.Title)
+		_ = a.toolbar.Actions().At(2).Menu().Actions().At(i).SetImage(s.Icon)
+		_ = a.toolbar.Actions().At(2).Menu().Actions().At(i).Triggered().Attach(func() {
+			_ = a.toolbar.Actions().At(2).SetText(s.Title)
+			_ = a.toolbar.Actions().At(2).SetImage(s.Icon)
+			a.cfg.AbyssWeather = s.Title
+			_ = config.Write(a.cfg)
+		})
 	}
 }
 

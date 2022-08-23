@@ -12,5 +12,7 @@ func init() {
 	procSetProcessDpiAwareness.Call(uintptr(2)) //nolint:errcheck // no needed
 }
 
-var modShcore = syscall.NewLazyDLL("Shcore.dll")
-var procSetProcessDpiAwareness = modShcore.NewProc("SetProcessDpiAwareness")
+var (
+	modShcore                  = syscall.NewLazyDLL("Shcore.dll")
+	procSetProcessDpiAwareness = modShcore.NewProc("SetProcessDpiAwareness")
+)

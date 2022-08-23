@@ -49,6 +49,5 @@ Agency 'Pyrolancea' DB3 Dose I x1
 				t.Errorf("FittingRecord.Validate() ship name incorrect, received: %q", tt.r.ShipName)
 			}
 		})
-
 	}
 }

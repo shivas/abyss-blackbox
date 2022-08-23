@@ -1,7 +1,6 @@
 package mainwindow
 
 import (
-	"fmt"
 	"log"
 	"syscall"
 	"time"
@@ -317,12 +316,6 @@ func NewAbyssRecorderWindow(
 											{Title: "Ship"},
 											{Title: "Fitting name"},
 										},
-										OnSelectedIndexesChanged: func() {
-											fmt.Printf("SelectedIndexes: %v\n", obj.RunnerTableView.SelectedIndexes())
-										},
-										OnCurrentIndexChanged: func() {
-											fmt.Printf("onCurrentIndexChanged: %v\n", obj.RunnerTableView.CurrentIndex())
-										},
 									},
 									PushButton{
 										AssignTo: &obj.ManageFittingsButton,
@@ -387,8 +380,8 @@ func NewAbyssRecorderWindow(
 	settingsChangedHandler := func(c *config.CaptureConfig) {
 		_ = config.Write(c)
 		clr.SetLogFolder(c.EVEGameLogsFolder)
-		logFiles, err := clr.GetLogFiles(time.Now(), time.Duration(24)*time.Hour)
 
+		logFiles, err := clr.GetLogFiles(time.Now(), time.Duration(24)*time.Hour)
 		if err != nil {
 			return
 		}

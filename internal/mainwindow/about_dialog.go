@@ -1,14 +1,17 @@
 package mainwindow
 
+//nolint:revive,stylecheck // side effects
+
 import (
 	"bytes"
+	"image"
 
 	"github.com/lxn/walk"
-	. "github.com/lxn/walk/declarative" // nolint:stylecheck,revive // we needs side effects
+	. "github.com/lxn/walk/declarative"
 	"github.com/pkg/browser"
 
 	_ "embed"
-	"image"
+
 	_ "image/png"
 
 	"github.com/shivas/abyss-blackbox/internal/version"
@@ -25,7 +28,7 @@ func RunAboutDialog(owner walk.Form) (int, error) {
 	)
 
 	png, _, _ := image.Decode(bytes.NewReader(logo))
-	img, _ := walk.NewBitmapFromImage(png)
+	img, _ := walk.NewBitmapFromImageForDPI(png, 92)
 
 	return (Dialog{
 		AssignTo:      &dlg,

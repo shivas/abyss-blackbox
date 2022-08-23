@@ -69,6 +69,10 @@ func (r *FittingRecord) Validate() error {
 		return err
 	}
 
+	if !validateResponse.Valid && validateResponse.Error != nil {
+		return fmt.Errorf("error validating fit: %s", *validateResponse.Error)
+	}
+
 	r.ShipTypeID = int32(validateResponse.ShipTypeID)
 	r.ShipName = validateResponse.Ship
 	r.FittingName = validateResponse.FittingName
