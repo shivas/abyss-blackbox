@@ -59,6 +59,16 @@ func NewAbyssRecorderWindow(
 ) *AbyssRecorderWindow {
 	obj := AbyssRecorderWindow{FittingManager: fm}
 
+	logFiles, _ := clr.GetLogFiles(time.Now(), time.Duration(24)*time.Hour)
+	characterMap := clr.MapCharactersToFiles(logFiles)
+	pilots := make([]string, 0)
+
+	for pilot := range characterMap {
+		pilots = append(pilots, pilot)
+	}
+
+	runnerModel := NewRunnerModel(characterMap, fm)
+
 	if err := (MainWindow{
 		AssignTo: &obj.MainWindow,
 		Title:    "Abyssal.Space Blackbox Recorder",
@@ -303,7 +313,7 @@ func NewAbyssRecorderWindow(
 										LastColumnStretched:         true,
 										CustomRowHeight:             34,
 										Columns: []TableViewColumn{
-											{Title: "Pilot", Width: 200},
+											{Title: "Pilot", Width: 150},
 											{Title: "Ship"},
 											{Title: "Fitting name"},
 										},
@@ -318,7 +328,8 @@ func NewAbyssRecorderWindow(
 										AssignTo: &obj.ManageFittingsButton,
 										Text:     "Manage fittings",
 										OnClicked: func() {
-											RunManageFittingsDialog(obj.MainWindow, nil)
+											_, _ = RunManageFittingsDialog(obj.MainWindow, make(map[string]string), fm, pilots)
+											runnerModel.RefreshList()
 										},
 									},
 								},
@@ -370,9 +381,6 @@ func NewAbyssRecorderWindow(
 		log.Fatal(err)
 	}
 
-	logFiles, _ := clr.GetLogFiles(time.Now(), time.Duration(24)*time.Hour)
-
-	runnerModel := NewRunnerModel(clr.MapCharactersToFiles(logFiles), fm)
 	_ = obj.RunnerTableView.SetModel(runnerModel)
 	obj.RunnerTableView.SetCellStyler(runnerModel)
 

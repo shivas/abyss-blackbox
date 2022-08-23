@@ -16,6 +16,7 @@ import (
 
 const cacheFileName = "fittings.db"
 const iconSize = 32
+const version = 1
 
 type FittingsManager struct {
 	sync.Mutex
@@ -24,8 +25,26 @@ type FittingsManager struct {
 
 func NewManager() *FittingsManager {
 	m := &FittingsManager{}
+	m.cache.Version = version
 	_ = m.LoadCache()
 	return m
+}
+
+func (m *FittingsManager) ClearAssignments() {
+	m.Lock()
+	defer m.Unlock()
+	m.cache.CharactersFittings = map[string]*FittingRecord{}
+}
+
+func (m *FittingsManager) DeleteFitting(index int) {
+	m.Lock()
+	defer m.Unlock()
+
+	m.cache.Fittings = append(m.cache.Fittings[:index], m.cache.Fittings[index+1:]...)
+}
+
+func (m *FittingsManager) GetFittingForPilot(characterName string) *FittingRecord {
+	return m.cache.CharactersFittings[characterName]
 }
 
 func (m *FittingsManager) AddFitting(r *FittingRecord) (ID int, fitting *FittingRecord, err error) {
@@ -57,6 +76,14 @@ func (m *FittingsManager) GetByID(ID int) *FittingRecord {
 	}
 
 	return m.cache.Fittings[ID]
+}
+
+func (m *FittingsManager) AssignFittingToCharacter(f *FittingRecord, characterName string) {
+	if m.cache.CharactersFittings == nil {
+		m.cache.CharactersFittings = make(map[string]*FittingRecord)
+	}
+
+	m.cache.CharactersFittings[characterName] = f
 }
 
 // PersistCache stores current state to cache file

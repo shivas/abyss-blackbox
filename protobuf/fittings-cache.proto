@@ -6,6 +6,8 @@ option go_package = "github.com/shivas/abyss-blackbox/internal/fittings";
 
 message FittingsCache {
     repeated FittingRecord fittings = 1;
+    map<string, FittingRecord> charactersFittings = 2;
+    int32 version = 3;
 }
 
 message FittingRecord {

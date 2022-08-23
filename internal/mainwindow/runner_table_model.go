@@ -1,6 +1,7 @@
 package mainwindow
 
 import (
+	"log"
 	"sort"
 
 	"github.com/lxn/walk"
@@ -25,24 +26,39 @@ type RunnerModel struct {
 	sortOrder  walk.SortOrder
 	items      []*Runner
 	fm         *fittings.FittingsManager
+	characters map[string]combatlog.CombatLogFile
+	font       *walk.Font
 }
 
 func NewRunnerModel(characters map[string]combatlog.CombatLogFile, fm *fittings.FittingsManager) *RunnerModel {
 	m := new(RunnerModel)
 	m.fm = fm
-	m.items = make([]*Runner, 0, len(characters))
+	m.characters = characters
+	fnt, err := walk.NewFont("MS Shell Dlg 2", 8, 0)
+	if err != nil {
+		log.Fatal(err)
+	}
+	m.font = fnt
+	m.RefreshList()
+	return m
+}
+
+func (m *RunnerModel) RefreshList() {
+	m.items = make([]*Runner, 0, len(m.characters))
 	i := 0
 
-	icon := m.fm.GetByID(0).ShipImage()
+	for k := range m.characters {
+		fitting := m.fm.GetFittingForPilot(k)
+		if fitting != nil {
+			m.items = append(m.items, &Runner{Index: i, CharacterName: k, FittingName: fitting.FittingName, ShipType: fitting.ShipName, ShipBitmap: fitting.ShipImage()})
+		} else {
+			m.items = append(m.items, &Runner{Index: i, CharacterName: k, FittingName: "", ShipType: "", ShipBitmap: nil})
+		}
 
-	for k := range characters {
-		m.items = append(m.items, &Runner{Index: i, CharacterName: k, FittingName: "My uber leet gila", ShipType: "Nergal", ShipBitmap: icon})
 		i++
 	}
-
 	m.PublishRowsReset()
 	_ = m.Sort(m.sortColumn, m.sortOrder)
-	return m
 }
 
 // Called by the TableView from SetModel and every time the model publishes a
@@ -123,7 +139,7 @@ func (m *RunnerModel) StyleCell(style *walk.CellStyle) {
 			bounds.X += 34
 			bounds.Y += 10
 			bounds.Width -= 34
-			canvas.DrawText(item.ShipType, walk.App().ActiveForm().Font(), 0, bounds, walk.TextLeft)
+			canvas.DrawText(item.ShipType, m.font, 0, bounds, walk.TextLeft)
 		}
 	}
 }
