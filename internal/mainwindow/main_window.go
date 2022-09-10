@@ -104,6 +104,10 @@ func NewAbyssRecorderWindow(
 					Enabled:  false,
 				},
 				Separator{},
+				Action{
+					Text:        "Show overlay",
+					OnTriggered: actions["show_overlay"],
+				},
 			},
 		},
 		MenuItems: []MenuItem{
@@ -395,11 +399,13 @@ func NewAbyssRecorderWindow(
 		win.UnregisterHotKey(obj.MainWindow.Handle(), config.HotkeyWeather30)
 		win.UnregisterHotKey(obj.MainWindow.Handle(), config.HotkeyWeather50)
 		win.UnregisterHotKey(obj.MainWindow.Handle(), config.HotkeyWeather70)
+		win.UnregisterHotKey(obj.MainWindow.Handle(), config.Overlay)
 
 		walk.RegisterGlobalHotKey(obj.MainWindow, config.HotkeyRecoder, c.RecorderShortcut)
 		walk.RegisterGlobalHotKey(obj.MainWindow, config.HotkeyWeather30, c.Weather30Shortcut)
 		walk.RegisterGlobalHotKey(obj.MainWindow, config.HotkeyWeather50, c.Weather50Shortcut)
 		walk.RegisterGlobalHotKey(obj.MainWindow, config.HotkeyWeather70, c.Weather70Shortcut)
+		walk.RegisterGlobalHotKey(obj.MainWindow, config.Overlay, c.OverlayShortcut)
 	}
 
 	obj.SettingsAction.Triggered().Attach(func() {

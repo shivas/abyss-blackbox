@@ -17,6 +17,7 @@ import (
 	"github.com/shivas/abyss-blackbox/internal/config"
 	"github.com/shivas/abyss-blackbox/internal/fittings"
 	"github.com/shivas/abyss-blackbox/internal/mainwindow"
+	"github.com/shivas/abyss-blackbox/internal/overlay"
 	"github.com/shivas/abyss-blackbox/internal/uploader"
 	"github.com/shivas/abyss-blackbox/screen"
 )
@@ -42,9 +43,22 @@ func main() {
 	recordingChannel = make(chan *image.Paletted, 10)
 	notificationChannel = make(chan NotificationMessage, 10)
 
+	overlayManager := overlay.New(
+		&overlay.OverlayConfig{
+			FontFamily:      "Verdana",
+			FontSize:        11,
+			Color:           walk.RGB(255, 255, 255),
+			BackgroundColor: walk.RGB(10, 10, 10),
+		},
+		currentSettings,
+	)
+	defer overlayManager.Close()
+
+	overlayManager.ChangeProperty(overlay.Status, "Recorder on standby")
+
 	// combatlog reader init
 	clr := combatlog.NewReader(currentSettings.EVEGameLogsFolder)
-	recorder = NewRecorder(recordingChannel, currentSettings, notificationChannel, clr)
+	recorder = NewRecorder(recordingChannel, currentSettings, notificationChannel, clr, overlayManager)
 	recorder.StartLoop()
 
 	defer recorder.StopLoop()
@@ -63,10 +77,16 @@ func main() {
 
 	actions := make(map[string]walk.EventHandler)
 	actions["add_character"] = charManager.EventHandlerCharAdd
+	actions["show_overlay"] = func() {
+		overlayManager.Show()
+	}
 
 	armw := mainwindow.NewAbyssRecorderWindow(currentSettings, drawStuff, comboModel, actions, clr, fittings.NewManager())
 	_ = charManager.MainWindow(armw).LoadCache() // assign window to control widgets
 	charManager.RefreshUI()
+	armw.MainWindow.Closing().Once(func(canceled *bool, reason walk.CloseReason) {
+		overlayManager.Close()
+	})
 
 	charManager.OnActivateCharacter = func(char charmanager.Character) {
 		if char.CharacterID > 0 {
@@ -141,6 +161,7 @@ func main() {
 						walk.MsgBox(armw.MainWindow, "Record uploading error", uploadErr.Error(), walk.MsgBoxIconWarning)
 					} else {
 						notificationChannel <- NotificationMessage{Title: "Record uploaded successfully", Message: uploadFile}
+						overlayManager.ChangeProperty(overlay.TODO, "Record uploaded successfully")
 					}
 				}(filename, char.CharacterToken)
 			}
@@ -153,6 +174,9 @@ func main() {
 			armw.TestServer.SetEnabled(true)
 			_ = armw.Toolbar.Actions().At(3).SetEnabled(true)
 			_ = armw.RecordingButton.SetText("Start recording")
+
+			overlayManager.ChangeProperty(overlay.Status, "Recorder on standby")
+			overlayManager.ChangeProperty(overlay.Weather, "")
 		}
 	}
 
@@ -176,6 +200,8 @@ func main() {
 			recorder.GetWeatherStrengthListener(50)()
 		case config.HotkeyWeather70:
 			recorder.GetWeatherStrengthListener(70)()
+		case config.Overlay:
+			overlayManager.ToggleOverlay()
 		}
 	})
 
@@ -183,6 +209,7 @@ func main() {
 	walk.RegisterGlobalHotKey(armw.MainWindow, config.HotkeyWeather30, currentSettings.Weather30Shortcut)
 	walk.RegisterGlobalHotKey(armw.MainWindow, config.HotkeyWeather50, currentSettings.Weather50Shortcut)
 	walk.RegisterGlobalHotKey(armw.MainWindow, config.HotkeyWeather70, currentSettings.Weather70Shortcut)
+	walk.RegisterGlobalHotKey(armw.MainWindow, config.Overlay, currentSettings.OverlayShortcut)
 
 	go func(cw *walk.CustomWidget) {
 		t := time.NewTicker(time.Second)

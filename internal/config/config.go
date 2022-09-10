@@ -15,6 +15,7 @@ const (
 	HotkeyWeather30
 	HotkeyWeather50
 	HotkeyWeather70
+	Overlay
 )
 
 type Preset struct {
@@ -40,6 +41,8 @@ type CaptureConfig struct {
 	Weather50Shortcut       walk.Shortcut
 	Weather70ShortcutText   string
 	Weather70Shortcut       walk.Shortcut
+	OverlayShortcutText     string
+	OverlayShortcut         walk.Shortcut
 	LootRecordDiscriminator string
 	ActiveCharacter         int32
 	AutoUpload              bool
@@ -47,6 +50,7 @@ type CaptureConfig struct {
 	AbyssShipType           int
 	AbyssTier               int
 	AbyssWeather            string
+	OverlayPosition         walk.Rectangle
 }
 
 // SetRecorderShortcut satisfies ShortcutSetter interface.
@@ -67,7 +71,12 @@ func (c *CaptureConfig) SetRecorderShortcut(shorcutType int, s walk.Shortcut) {
 	case HotkeyWeather70:
 		c.Weather70Shortcut = s
 		c.Weather70ShortcutText = s.String()
+
+	case Overlay:
+		c.OverlayShortcut = s
+		c.OverlayShortcutText = s.String()
 	}
+
 }
 
 // Read reads configuration from json file, or creates one if file doesn't exist
@@ -86,6 +95,7 @@ func Read() (*CaptureConfig, error) {
 	defaultWeather30Shortcut := walk.Shortcut{Modifiers: walk.ModControl | walk.ModAlt, Key: walk.KeyNumpad3}
 	defaultWeather50Shortcut := walk.Shortcut{Modifiers: walk.ModControl | walk.ModAlt, Key: walk.KeyNumpad5}
 	defaultWeather70Shortcut := walk.Shortcut{Modifiers: walk.ModControl | walk.ModAlt, Key: walk.KeyNumpad7}
+	defaultOverlayShortcut := walk.Shortcut{Modifiers: walk.ModControl | walk.ModAlt, Key: walk.KeyInsert}
 
 	_, err = os.Stat(settingsFilename)
 	if os.IsNotExist(err) {
@@ -116,6 +126,9 @@ func Read() (*CaptureConfig, error) {
 			Weather50Shortcut:       defaultWeather50Shortcut,
 			Weather70ShortcutText:   defaultWeather70Shortcut.String(),
 			Weather70Shortcut:       defaultWeather70Shortcut,
+			OverlayShortcutText:     defaultOverlayShortcut.String(),
+			OverlayShortcut:         defaultOverlayShortcut,
+			OverlayPosition:         walk.Rectangle{200, 200, 200, 200},
 			LootRecordDiscriminator: "Quafe",
 			AbyssShipType:           1,
 			AbyssTier:               0,
@@ -156,6 +169,15 @@ func Read() (*CaptureConfig, error) {
 		if c.Weather70ShortcutText == "" {
 			c.Weather70Shortcut = defaultWeather70Shortcut
 			c.Weather70ShortcutText = defaultWeather70Shortcut.String()
+		}
+
+		if c.OverlayShortcutText == "" {
+			c.OverlayShortcut = defaultOverlayShortcut
+			c.OverlayShortcutText = defaultOverlayShortcut.String()
+		}
+
+		if c.OverlayPosition.Height == 0 {
+			c.OverlayPosition = walk.Rectangle{200, 200, 200, 200}
 		}
 
 		if c.LootRecordDiscriminator == "" {

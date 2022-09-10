@@ -26,6 +26,8 @@ func RunSettingsDialog(owner walk.Form, conf interface{}, onSettingsSubmit func(
 		Weather50ShortcutRecordButton *walk.PushButton
 		Weather70ShortcutEdit         *walk.LineEdit
 		Weather70ShortcutRecordButton *walk.PushButton
+		OverlayShortcutEdit           *walk.LineEdit
+		OverlayShortcutRecordButton   *walk.PushButton
 		LootRecordDiscriminatorEdit   *walk.LineEdit
 		EVEGameLogsFolderLabel        *walk.TextLabel
 		ChooseLogDirButton            *walk.PushButton
@@ -55,6 +57,9 @@ func RunSettingsDialog(owner walk.Form, conf interface{}, onSettingsSubmit func(
 						}
 						if key, exists := shortcutStringToKey[c.Weather70ShortcutText]; exists {
 							setter.SetRecorderShortcut(config.HotkeyWeather70, key)
+						}
+						if key, exists := shortcutStringToKey[c.OverlayShortcutText]; exists {
+							setter.SetRecorderShortcut(config.Overlay, key)
 						}
 					}
 					onSettingsSubmit(c)
@@ -243,6 +248,41 @@ func RunSettingsDialog(owner walk.Form, conf interface{}, onSettingsSubmit func(
 									} else { // persist new shortcut and rebind
 										Weather70ShortcutEdit.SetEnabled(false)
 										_ = Weather70ShortcutRecordButton.SetText("Record shortcut")
+									}
+								},
+							},
+						},
+					},
+					Composite{
+						Layout:    HBox{},
+						Alignment: AlignHNearVNear,
+						Children: []Widget{
+							TextLabel{
+								Text: "Toggle overlay",
+							},
+							LineEdit{
+								Text:     Bind("OverlayShortcutText"),
+								AssignTo: &OverlayShortcutEdit,
+								OnKeyPress: func(key walk.Key) {
+									shortcut := walk.Shortcut{Modifiers: walk.ModifiersDown(), Key: key}
+									_ = OverlayShortcutEdit.SetText(shortcut.String())
+									shortcutStringToKey[shortcut.String()] = shortcut
+								},
+								Enabled:  false,
+								ReadOnly: true,
+							},
+							PushButton{
+								AssignTo: &OverlayShortcutRecordButton,
+								MinSize:  Size{Height: 20},
+								Text:     "Record shortcut",
+								OnClicked: func() {
+									if !OverlayShortcutEdit.Enabled() { // start recording
+										OverlayShortcutEdit.SetEnabled(true)
+										_ = OverlayShortcutEdit.SetFocus()
+										_ = OverlayShortcutRecordButton.SetText("Save")
+									} else { // persist new shortcut and rebind
+										OverlayShortcutEdit.SetEnabled(false)
+										_ = OverlayShortcutRecordButton.SetText("Record shortcut")
 									}
 								},
 							},
