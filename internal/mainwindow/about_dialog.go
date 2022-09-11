@@ -98,36 +98,5 @@ func RunAboutDialog(owner walk.Form) (int, error) {
 		log.Fatal(err)
 	}
 
-	// win.SetWindowPos(dlg.Handle(),
-	// 	win.HWND_TOPMOST, 0, 0, 0, 0,
-	// 	win.SWP_NOACTIVATE|win.SWP_NOMOVE|win.SWP_NOSIZE)
-
-	// flag := win.GetWindowLong(dlg.Handle(), win.GWL_STYLE) // Gets current style
-	// flag |= win.WS_OVERLAPPED                              // always on top
-	// // flag &= ^win.WS_BORDER                                 // no border(min/max/close)
-	// // flag &= ^win.WS_THICKFRAME                             // fixed size
-	// flag &= ^win.WS_SIZEBOX
-	// flag &= ^win.WS_CAPTION
-	// win.SetWindowLong(dlg.Handle(), win.GWL_STYLE, flag)
-
-	// flag2 := win.GetWindowLong(dlg.Handle(), win.GWL_EXSTYLE)
-	// flag2 |= win.WS_EX_NOACTIVATE
-	// //flag2 |= win.WS_EX_TOOLWINDOW
-	// flag2 |= win.WS_EX_TOPMOST
-	// flag2 |= win.WS_EX_LAYERED
-	// flag2 |= win.WS_EX_TRANSPARENT
-	// //flag2 |= win.WS_EX_STATICEDGE
-	// //flag2 |= win.WS_EX_NOPARENTNOTIFY
-
-	// win.SetWindowLong(dlg.Handle(), win.GWL_EXSTYLE, flag2)
-
-	// scb, err := walk.NewSolidColorBrush(walk.RGB(0, 0, 0))
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// defer scb.Dispose()
-	// //	win.SetBkColor(win.HDC(dlg.Handle()), win.COLORREF(scb.Color()))
-	// dlg.SetBackground(scb)
-
 	return dlg.Run(), nil
 }
