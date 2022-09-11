@@ -78,7 +78,7 @@ func main() {
 	actions := make(map[string]walk.EventHandler)
 	actions["add_character"] = charManager.EventHandlerCharAdd
 	actions["show_overlay"] = func() {
-		overlayManager.Show()
+		overlayManager.ToggleOverlay()
 	}
 
 	armw := mainwindow.NewAbyssRecorderWindow(currentSettings, drawStuff, comboModel, actions, clr, fittings.NewManager())
@@ -116,7 +116,9 @@ func main() {
 	// notification routine
 	go func(nc chan NotificationMessage, ni *walk.NotifyIcon) {
 		for msg := range nc {
-			_ = ni.ShowMessage(msg.Title, msg.Message)
+			if !currentSettings.SuppressNotifications {
+				_ = ni.ShowMessage(msg.Title, msg.Message)
+			}
 		}
 	}(notificationChannel, notificationIcon)
 
@@ -136,6 +138,14 @@ func main() {
 				}
 
 				recorder.Start(checkedChars)
+			}
+
+			overlayManager.ChangeProperty(overlay.Autoupload, fmt.Sprintf("Autoupload enabled: %t", armw.AutoUploadCheckbox.Checked()))
+
+			if currentSettings.AbyssTypeOverride {
+				overlayManager.ChangeProperty(overlay.Override, fmt.Sprintf("Abyss type override: %s", tierOverrideToString(currentSettings)))
+			} else {
+				overlayManager.ChangeProperty(overlay.Override, "Abyss type detection: heuristics")
 			}
 
 			_ = armw.MainWindow.Menu().Actions().At(0).SetVisible(false)
@@ -359,4 +369,19 @@ func paletted(img *image.NRGBA, cutoff uint32) *image.Paletted {
 	}
 
 	return buffimg
+}
+
+func tierOverrideToString(c *config.CaptureConfig) string {
+	var ship string
+
+	switch c.AbyssShipType {
+	case 1:
+		ship = "Cruiser"
+	case 2:
+		ship = "Destroyers"
+	case 3:
+		ship = "Frigates"
+	}
+
+	return fmt.Sprintf("%s T%d %s", ship, c.AbyssTier, c.AbyssWeather)
 }

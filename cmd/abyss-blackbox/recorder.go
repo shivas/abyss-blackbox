@@ -108,7 +108,8 @@ func (r *Recorder) StartLoop() {
 				switch r.state {
 				case RecorderAwaitingInitialLoot:
 					r.notificationChannel <- NotificationMessage{Title: "Abyssal.Space recording started...", Message: "Initial cargo received, awaiting cargo after fillament activation"}
-					r.overlay.ChangeProperty(overlay.TODO, "Initial cargo received, awaiting cargo after fillament activation")
+					r.overlay.ChangeProperty(overlay.TODO, "Activate fillament. Record loot after!")
+					r.overlay.ChangeProperty(overlay.Status, "Recording...")
 					r.state = RecorderRunning
 					r.lootRecords = append(r.lootRecords, &encoding.LootRecord{Frame: 0, Loot: lootSnapshot})
 				case RecorderRunning:
@@ -194,6 +195,7 @@ func (r *Recorder) Start(characters []string) {
 	r.state = RecorderAwaitingInitialLoot
 	r.notificationChannel <- NotificationMessage{Title: "Recording starting...", Message: "CTRL+A, CTRL+C your inventory"}
 	r.overlay.ChangeProperty(overlay.Status, "Recording starting")
+	r.overlay.ChangeProperty(overlay.Weather, "TODO: Record weather strength")
 	r.overlay.ChangeProperty(overlay.TODO, "TODO: CTRL+A, CTRL+C your inventory")
 }
 
@@ -243,6 +245,7 @@ func (r *Recorder) Stop(fm *fittings.FittingsManager) (string, error) {
 	defer func() {
 		r.notificationChannel <- NotificationMessage{Title: "Abyss recorder", Message: fmt.Sprintf("Abyss run successfully recorded to file: %s", r.recordingName)}
 		r.overlay.ChangeProperty(overlay.TODO, "Abyss run successfully recorded to file")
+		r.overlay.ChangeProperty(overlay.Status, "Recorder on standby")
 	}()
 
 	defer func() {

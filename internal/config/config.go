@@ -50,6 +50,7 @@ type CaptureConfig struct {
 	AbyssShipType           int
 	AbyssTier               int
 	AbyssWeather            string
+	SuppressNotifications   bool
 	OverlayPosition         walk.Rectangle
 }
 
@@ -133,6 +134,7 @@ func Read() (*CaptureConfig, error) {
 			AbyssShipType:           1,
 			AbyssTier:               0,
 			AbyssWeather:            "Dark",
+			SuppressNotifications:   false,
 		}
 		load = false
 	} else if err != nil {

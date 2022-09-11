@@ -65,4 +65,9 @@ tasks:
         sh: git describe --tags --always
       GO_VERSION:
         sh: go env GOVERSION
-          
+
+  pack:
+    desc: Compress executables with UPX
+    cmds:
+      - upx abyss-blackbox.exe
+      - upx abyss-blackbox32.exe

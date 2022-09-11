@@ -65,6 +65,18 @@ func (o *OverlayDialog) drawStuff(canvas *walk.Canvas, updateBounds walk.Rectang
 	bounds.Height -= 10
 	bounds.Y += 5
 
+	headerFont, err := walk.NewFont(o.config.FontFamily, 9, walk.FontBold)
+	if err != nil {
+		return err
+	}
+	defer headerFont.Dispose()
+
+	if err = canvas.DrawTextPixels("abyssal.space telemetry overlay", headerFont, o.config.Color, bounds, walk.TextWordbreak); err != nil {
+		return err
+	}
+
+	bounds.Y += o.config.FontSize + 5
+
 	font, err := walk.NewFont(o.config.FontFamily, o.config.FontSize, 0)
 	if err != nil {
 		return err
@@ -75,13 +87,23 @@ func (o *OverlayDialog) drawStuff(canvas *walk.Canvas, updateBounds walk.Rectang
 		return err
 	}
 
-	bounds.Y += o.config.FontSize + 5
+	bounds.Y += o.config.FontSize + 8
 	if err := canvas.DrawTextPixels(o.state.items[Weather].text, font, o.config.Color, bounds, walk.TextWordbreak); err != nil {
 		return err
 	}
 
-	bounds.Y += o.config.FontSize + 5
+	bounds.Y += o.config.FontSize + 6
 	if err := canvas.DrawTextPixels(o.state.items[TODO].text, font, o.config.Color, bounds, walk.TextWordbreak); err != nil {
+		return err
+	}
+
+	bounds.Y += o.config.FontSize + 10
+	if err := canvas.DrawTextPixels(o.state.items[Override].text, font, o.config.Color, bounds, walk.TextWordbreak); err != nil {
+		return err
+	}
+
+	bounds.Y += o.config.FontSize + 6
+	if err := canvas.DrawTextPixels(o.state.items[Autoupload].text, font, o.config.Color, bounds, walk.TextWordbreak); err != nil {
 		return err
 	}
 

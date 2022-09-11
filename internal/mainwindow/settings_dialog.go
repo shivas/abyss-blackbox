@@ -292,6 +292,17 @@ func RunSettingsDialog(owner walk.Form, conf interface{}, onSettingsSubmit func(
 				AlwaysConsumeSpace: true,
 				MinSize:            Size{Height: 20},
 			},
+			GroupBox{
+				Title:     "Notifications",
+				Layout:    VBox{},
+				Alignment: AlignHNearVNear,
+				Children: []Widget{
+					CheckBox{
+						Text:    "Suppress notifications",
+						Checked: Bind("SuppressNotifications"),
+					},
+				},
+			},
 			Composite{
 				Layout: HBox{},
 				Children: []Widget{

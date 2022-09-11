@@ -105,7 +105,7 @@ func NewAbyssRecorderWindow(
 				},
 				Separator{},
 				Action{
-					Text:        "Show overlay",
+					Text:        "Overlay",
 					OnTriggered: actions["show_overlay"],
 				},
 			},

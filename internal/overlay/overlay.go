@@ -36,9 +36,11 @@ type Overlay struct {
 type WidgetProperty string
 
 const (
-	Status  WidgetProperty = "status"
-	Weather WidgetProperty = "weather"
-	TODO    WidgetProperty = "todo"
+	Status     WidgetProperty = "status"
+	Weather    WidgetProperty = "weather"
+	TODO       WidgetProperty = "todo"
+	Override   WidgetProperty = "override"
+	Autoupload WidgetProperty = "autoupload"
 )
 
 type stateItem struct {
@@ -62,9 +64,11 @@ func New(c *OverlayConfig, captureConfig *config.CaptureConfig) *Overlay {
 		captureConfig: captureConfig,
 		overlayState: &overlayState{
 			items: map[WidgetProperty]stateItem{
-				Status:  {text: "status text"},
-				Weather: {text: "weather strength"},
-				TODO:    {text: "Long text message can be here"},
+				Status:     {text: "status text"},
+				Weather:    {text: ""},
+				TODO:       {text: "Long text message can be here"},
+				Override:   {text: "Manual override text"},
+				Autoupload: {text: "Autoupload status"},
 			},
 		},
 	}
