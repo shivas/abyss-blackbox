@@ -54,7 +54,7 @@ func main() {
 	)
 	defer overlayManager.Close()
 
-	overlayManager.ChangeProperty(overlay.Status, "Recorder on standby")
+	overlayManager.ChangeProperty(overlay.Status, "Recorder on standby", &overlay.YellowColor)
 
 	// combatlog reader init
 	clr := combatlog.NewReader(currentSettings.EVEGameLogsFolder)
@@ -140,12 +140,12 @@ func main() {
 				recorder.Start(checkedChars)
 			}
 
-			overlayManager.ChangeProperty(overlay.Autoupload, fmt.Sprintf("Autoupload enabled: %t", armw.AutoUploadCheckbox.Checked()))
+			overlayManager.ChangeProperty(overlay.Autoupload, fmt.Sprintf("Autoupload enabled: %t", armw.AutoUploadCheckbox.Checked()), &overlay.CyanColor)
 
 			if currentSettings.AbyssTypeOverride {
-				overlayManager.ChangeProperty(overlay.Override, fmt.Sprintf("Abyss type override: %s", tierOverrideToString(currentSettings)))
+				overlayManager.ChangeProperty(overlay.Override, fmt.Sprintf("Abyss type override: %s", tierOverrideToString(currentSettings)), &overlay.SecondaryColor)
 			} else {
-				overlayManager.ChangeProperty(overlay.Override, "Abyss type detection: heuristics")
+				overlayManager.ChangeProperty(overlay.Override, "Abyss type detection: heuristics", &overlay.CyanColor)
 			}
 
 			_ = armw.MainWindow.Menu().Actions().At(0).SetVisible(false)
@@ -171,7 +171,7 @@ func main() {
 						walk.MsgBox(armw.MainWindow, "Record uploading error", uploadErr.Error(), walk.MsgBoxIconWarning)
 					} else {
 						notificationChannel <- NotificationMessage{Title: "Record uploaded successfully", Message: uploadFile}
-						overlayManager.ChangeProperty(overlay.TODO, "Record uploaded successfully")
+						overlayManager.ChangeProperty(overlay.TODO, "Record uploaded successfully", &overlay.GreenColor)
 					}
 				}(filename, char.CharacterToken)
 			}
@@ -185,8 +185,8 @@ func main() {
 			_ = armw.Toolbar.Actions().At(3).SetEnabled(true)
 			_ = armw.RecordingButton.SetText("Start recording")
 
-			overlayManager.ChangeProperty(overlay.Status, "Recorder on standby")
-			overlayManager.ChangeProperty(overlay.Weather, "")
+			overlayManager.ChangeProperty(overlay.Status, "Recorder on standby", &overlay.YellowColor)
+			overlayManager.ChangeProperty(overlay.Weather, "", nil)
 		}
 	}
 

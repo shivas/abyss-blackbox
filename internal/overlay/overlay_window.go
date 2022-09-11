@@ -7,6 +7,13 @@ import (
 	. "github.com/lxn/walk/declarative"
 )
 
+var PrimaryColor walk.Color = walk.RGB(194, 176, 226)
+var SecondaryColor walk.Color = walk.RGB(239, 108, 0)
+var GreenColor walk.Color = walk.RGB(76, 175, 80)
+var YellowColor walk.Color = walk.RGB(223, 235, 37)
+var CyanColor walk.Color = walk.RGB(0, 137, 123)
+var RedColor walk.Color = walk.RGB(255, 47, 0)
+
 type OverlayDialog struct {
 	Dialog *walk.Dialog
 	Widget *walk.CustomWidget
@@ -71,7 +78,7 @@ func (o *OverlayDialog) drawStuff(canvas *walk.Canvas, updateBounds walk.Rectang
 	}
 	defer headerFont.Dispose()
 
-	if err = canvas.DrawTextPixels("abyssal.space telemetry overlay", headerFont, o.config.Color, bounds, walk.TextWordbreak); err != nil {
+	if err = canvas.DrawTextPixels("abyssal.space telemetry overlay", headerFont, PrimaryColor, bounds, walk.TextWordbreak); err != nil {
 		return err
 	}
 
@@ -83,29 +90,38 @@ func (o *OverlayDialog) drawStuff(canvas *walk.Canvas, updateBounds walk.Rectang
 	}
 	defer font.Dispose()
 
-	if err := canvas.DrawTextPixels(o.state.items[Status].text, font, o.config.Color, bounds, walk.TextWordbreak); err != nil {
+	if err := canvas.DrawTextPixels(o.state.items[Status].text, font, lineColor(o.state.items[Status], o.config.Color), bounds, walk.TextWordbreak); err != nil {
 		return err
 	}
 
 	bounds.Y += o.config.FontSize + 8
-	if err := canvas.DrawTextPixels(o.state.items[Weather].text, font, o.config.Color, bounds, walk.TextWordbreak); err != nil {
+	if err := canvas.DrawTextPixels(o.state.items[Weather].text, font, lineColor(o.state.items[Weather], o.config.Color), bounds, walk.TextWordbreak); err != nil {
 		return err
 	}
 
 	bounds.Y += o.config.FontSize + 6
-	if err := canvas.DrawTextPixels(o.state.items[TODO].text, font, o.config.Color, bounds, walk.TextWordbreak); err != nil {
+	if err := canvas.DrawTextPixels(o.state.items[TODO].text, font, lineColor(o.state.items[TODO], o.config.Color), bounds, walk.TextWordbreak); err != nil {
 		return err
 	}
 
 	bounds.Y += o.config.FontSize + 10
-	if err := canvas.DrawTextPixels(o.state.items[Override].text, font, o.config.Color, bounds, walk.TextWordbreak); err != nil {
+	if err := canvas.DrawTextPixels(o.state.items[Override].text, font, lineColor(o.state.items[Override], o.config.Color), bounds, walk.TextWordbreak); err != nil {
 		return err
 	}
 
 	bounds.Y += o.config.FontSize + 6
-	if err := canvas.DrawTextPixels(o.state.items[Autoupload].text, font, o.config.Color, bounds, walk.TextWordbreak); err != nil {
+	if err := canvas.DrawTextPixels(o.state.items[Autoupload].text, font, lineColor(o.state.items[Autoupload], o.config.Color), bounds, walk.TextWordbreak); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func lineColor(s stateItem, defaultColor walk.Color) (color walk.Color) {
+	color = defaultColor
+	if s.color != nil {
+		color = *s.color
+	}
+
+	return
 }

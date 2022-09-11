@@ -44,7 +44,8 @@ const (
 )
 
 type stateItem struct {
-	text string
+	text  string
+	color *walk.Color
 }
 
 type overlayState struct {
@@ -64,11 +65,11 @@ func New(c *OverlayConfig, captureConfig *config.CaptureConfig) *Overlay {
 		captureConfig: captureConfig,
 		overlayState: &overlayState{
 			items: map[WidgetProperty]stateItem{
-				Status:     {text: "status text"},
+				Status:     {text: "status text", color: &YellowColor},
 				Weather:    {text: ""},
 				TODO:       {text: "Long text message can be here"},
-				Override:   {text: "Manual override text"},
-				Autoupload: {text: "Autoupload status"},
+				Override:   {text: "Manual override text", color: &CyanColor},
+				Autoupload: {text: "Autoupload status", color: &CyanColor},
 			},
 		},
 	}
@@ -82,10 +83,10 @@ func (o *Overlay) ToggleOverlay() {
 	}
 }
 
-func (o *Overlay) ChangeProperty(prop WidgetProperty, text string) {
+func (o *Overlay) ChangeProperty(prop WidgetProperty, text string, color *walk.Color) {
 	o.overlayState.Lock()
 
-	o.overlayState.items[prop] = stateItem{text: text}
+	o.overlayState.items[prop] = stateItem{text: text, color: color}
 
 	o.overlayState.Unlock()
 
