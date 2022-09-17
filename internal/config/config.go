@@ -219,6 +219,14 @@ func Read() (*CaptureConfig, error) {
 		if c.AbyssWeather == "" {
 			c.AbyssWeather = "Dark"
 		}
+
+		if c.OverlayConfig.Spacing == 0 && c.OverlayConfig.FontSize == 0 {
+			c.OverlayConfig.FontFamily = "Verdana"
+			c.OverlayConfig.Spacing = 11
+			c.OverlayConfig.FontSize = 9
+			c.OverlayConfig.BackgroundColor = "#000000"
+			c.OverlayConfig.Color = "#FFFFFF"
+		}
 	}
 
 	return c, nil
