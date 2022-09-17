@@ -20,6 +20,11 @@ type WindowComboBoxItem struct {
 	WindowHandle syscall.Handle
 }
 
+type UIScalingComboBoxItem struct {
+	UIScalingTitle string
+	RecorderWidth  int
+}
+
 type AbyssRecorderWindow struct {
 	MainWindow             *walk.MainWindow
 	FilteredPreview        *walk.CheckBox
@@ -30,6 +35,7 @@ type AbyssRecorderWindow struct {
 	HSetting               *walk.NumberEdit
 	RecordingButton        *walk.PushButton
 	CaptureWindowComboBox  *walk.ComboBox
+	UIScalingComboBox      *walk.ComboBox
 	RunnerCharacterGroup   *walk.GroupBox
 	RunnerTableView        *walk.TableView
 	CaptureSettingsGroup   *walk.GroupBox
@@ -45,6 +51,7 @@ type AbyssRecorderWindow struct {
 	AbyssTypeToolbar       *walk.ToolBar
 	ManageFittingsButton   *walk.PushButton
 	FittingManager         *fittings.FittingsManager
+	RecorderWidth          int
 }
 
 // NewAbyssRecorderWindow creates new main window of recorder.
@@ -57,6 +64,22 @@ func NewAbyssRecorderWindow(
 	fm *fittings.FittingsManager,
 ) *AbyssRecorderWindow {
 	obj := AbyssRecorderWindow{FittingManager: fm}
+
+	UIScalingItems := []*UIScalingComboBoxItem{
+		{UIScalingTitle: "100", RecorderWidth: 255},
+		{UIScalingTitle: "110", RecorderWidth: 255},
+		{UIScalingTitle: "125", RecorderWidth: 300},
+		{UIScalingTitle: "150", RecorderWidth: 300},
+		{UIScalingTitle: "175", RecorderWidth: 400},
+	}
+
+	obj.RecorderWidth = 255
+
+	for _, v := range UIScalingItems {
+		if v.UIScalingTitle == c.(*config.CaptureConfig).EVEClientUIScaling {
+			obj.RecorderWidth = v.RecorderWidth
+		}
+	}
 
 	logFiles, _ := clr.GetLogFiles(time.Now(), time.Duration(24)*time.Hour)
 	characterMap := clr.MapCharactersToFiles(logFiles)
@@ -187,7 +210,7 @@ func NewAbyssRecorderWindow(
 												MinSize:  Size{Width: 50, Height: 10},
 												OnValueChanged: func() {
 													if obj.CaptureWidget != nil {
-														_ = obj.CaptureWidget.SetMinMaxSizePixels(walk.Size{Height: int(obj.HSetting.Value()), Width: 255}, walk.Size{})
+														_ = obj.CaptureWidget.SetMinMaxSizePixels(walk.Size{Height: int(obj.HSetting.Value()), Width: obj.RecorderWidth}, walk.Size{})
 														obj.CaptureWidget.RequestLayout()
 													}
 												},
@@ -195,6 +218,24 @@ func NewAbyssRecorderWindow(
 											PushButton{
 												AssignTo: &obj.PresetSaveButton,
 												Text:     "Save as preset",
+											},
+											HSpacer{},
+										},
+									},
+									Composite{
+										Layout: HBox{},
+										Children: []Widget{
+											TextLabel{
+												Text: "EVE client UI scaling:",
+											},
+											ComboBox{
+												AssignTo:      &obj.UIScalingComboBox,
+												Model:         UIScalingItems,
+												ToolTipText:   "EVE client UI scaling setting, used to adjust recorder width to fit all entities. If using large font in EVE, set this to maximum value.",
+												BindingMember: "UIScalingTitle",
+												DisplayMember: "UIScalingTitle",
+												Value:         Bind("EVEClientUIScaling"),
+												Editable:      false,
 											},
 											HSpacer{},
 										},
@@ -363,7 +404,7 @@ func NewAbyssRecorderWindow(
 						Children: []Widget{
 							CustomWidget{
 								AssignTo:            &obj.CaptureWidget,
-								MinSize:             Size{Width: 255, Height: 1},
+								MinSize:             Size{Width: obj.RecorderWidth, Height: 1},
 								Paint:               customWidgetPaintFunc,
 								InvalidatesOnResize: true,
 								ClearsBackground:    true,
@@ -407,6 +448,20 @@ func NewAbyssRecorderWindow(
 		walk.RegisterGlobalHotKey(obj.MainWindow, config.HotkeyWeather70, c.Weather70Shortcut)
 		walk.RegisterGlobalHotKey(obj.MainWindow, config.Overlay, c.OverlayShortcut)
 	}
+
+	obj.UIScalingComboBox.CurrentIndexChanged().Attach(func() {
+		if obj.UIScalingComboBox.CurrentIndex() < 0 && obj.UIScalingComboBox.CurrentIndex() > len(UIScalingItems)-1 {
+			return
+		}
+
+		for _, v := range UIScalingItems {
+			if v.UIScalingTitle == UIScalingItems[obj.UIScalingComboBox.CurrentIndex()].UIScalingTitle {
+				_ = obj.CapturePreviewGroupBox.SetMinMaxSize(walk.Size{Width: v.RecorderWidth, Height: c.(*config.CaptureConfig).H}, walk.Size{})
+				_ = obj.CaptureWidget.SetWidth(v.RecorderWidth)
+				obj.RecorderWidth = v.RecorderWidth
+			}
+		}
+	})
 
 	obj.SettingsAction.Triggered().Attach(func() {
 		_, _ = RunSettingsDialog(obj.MainWindow, c, settingsChangedHandler)

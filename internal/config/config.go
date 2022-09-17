@@ -31,6 +31,7 @@ type CaptureConfig struct {
 	FilterThreshold         int
 	FilteredPreview         bool
 	EVEClientWindowTitle    string
+	EVEClientUIScaling      string
 	EVEGameLogsFolder       string
 	TestServer              bool
 	RecorderShortcutText    string
@@ -119,6 +120,7 @@ func Read() (*CaptureConfig, error) {
 			FilteredPreview:         false,
 			AbyssTypeOverride:       false,
 			EVEGameLogsFolder:       eveGameLogsFolder,
+			EVEClientUIScaling:      "100",
 			RecorderShortcutText:    defaultRecorderShortcut.String(),
 			RecorderShortcut:        defaultRecorderShortcut,
 			Weather30ShortcutText:   defaultWeather30Shortcut.String(),
@@ -184,6 +186,10 @@ func Read() (*CaptureConfig, error) {
 
 		if c.LootRecordDiscriminator == "" {
 			c.LootRecordDiscriminator = "Quafe"
+		}
+
+		if c.EVEClientUIScaling == "" {
+			c.EVEClientUIScaling = "100"
 		}
 
 		if c.AbyssShipType == 0 {

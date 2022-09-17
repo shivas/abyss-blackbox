@@ -227,7 +227,7 @@ func main() {
 		for range t.C {
 			img, errr := screen.CaptureWindowArea(
 				foundEVEClientWindows.GetHandleByTitle(currentSettings.EVEClientWindowTitle),
-				image.Rectangle{Min: image.Point{X: currentSettings.X, Y: currentSettings.Y}, Max: image.Point{X: currentSettings.X + 255, Y: currentSettings.Y + currentSettings.H}},
+				image.Rectangle{Min: image.Point{X: currentSettings.X, Y: currentSettings.Y}, Max: image.Point{X: currentSettings.X + armw.RecorderWidth, Y: currentSettings.Y + currentSettings.H}},
 			)
 			if errr != nil {
 				walk.MsgBox(armw.MainWindow, "Error capturing window area, restart of application is needed.", errr.Error(), walk.MsgBoxIconWarning)
