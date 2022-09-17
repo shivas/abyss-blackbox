@@ -82,7 +82,7 @@ func (o *OverlayDialog) drawStuff(canvas *walk.Canvas, updateBounds walk.Rectang
 		return err
 	}
 
-	bounds.Y += o.config.FontSize + 5
+	bounds.Y += o.config.Spacing
 
 	font, err := walk.NewFont(o.config.FontFamily, o.config.FontSize, 0)
 	if err != nil {
@@ -94,22 +94,22 @@ func (o *OverlayDialog) drawStuff(canvas *walk.Canvas, updateBounds walk.Rectang
 		return err
 	}
 
-	bounds.Y += o.config.FontSize + 8
+	bounds.Y += o.config.Spacing
 	if err := canvas.DrawTextPixels(o.state.items[Weather].text, font, lineColor(o.state.items[Weather], o.config.Color), bounds, walk.TextWordbreak); err != nil {
 		return err
 	}
 
-	bounds.Y += o.config.FontSize + 6
+	bounds.Y += o.config.Spacing
 	if err := canvas.DrawTextPixels(o.state.items[TODO].text, font, lineColor(o.state.items[TODO], o.config.Color), bounds, walk.TextWordbreak); err != nil {
 		return err
 	}
 
-	bounds.Y += o.config.FontSize + 10
+	bounds.Y += o.config.Spacing
 	if err := canvas.DrawTextPixels(o.state.items[Override].text, font, lineColor(o.state.items[Override], o.config.Color), bounds, walk.TextWordbreak); err != nil {
 		return err
 	}
 
-	bounds.Y += o.config.FontSize + 6
+	bounds.Y += o.config.Spacing
 	if err := canvas.DrawTextPixels(o.state.items[Autoupload].text, font, lineColor(o.state.items[Autoupload], o.config.Color), bounds, walk.TextWordbreak); err != nil {
 		return err
 	}

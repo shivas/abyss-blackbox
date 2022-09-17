@@ -44,12 +44,7 @@ func main() {
 	notificationChannel = make(chan NotificationMessage, 10)
 
 	overlayManager := overlay.New(
-		&overlay.OverlayConfig{
-			FontFamily:      "Verdana",
-			FontSize:        11,
-			Color:           walk.RGB(255, 255, 255),
-			BackgroundColor: walk.RGB(10, 10, 10),
-		},
+		overlay.FromCaptureConfig(currentSettings),
 		currentSettings,
 	)
 	defer overlayManager.Close()
@@ -227,7 +222,7 @@ func main() {
 		for range t.C {
 			img, errr := screen.CaptureWindowArea(
 				foundEVEClientWindows.GetHandleByTitle(currentSettings.EVEClientWindowTitle),
-				image.Rectangle{Min: image.Point{X: currentSettings.X, Y: currentSettings.Y}, Max: image.Point{X: currentSettings.X + 255, Y: currentSettings.Y + currentSettings.H}},
+				image.Rectangle{Min: image.Point{X: currentSettings.X, Y: currentSettings.Y}, Max: image.Point{X: currentSettings.X + armw.RecorderWidth, Y: currentSettings.Y + currentSettings.H}},
 			)
 			if errr != nil {
 				walk.MsgBox(armw.MainWindow, "Error capturing window area, restart of application is needed.", errr.Error(), walk.MsgBoxIconWarning)

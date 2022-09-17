@@ -16,13 +16,6 @@ const (
 	ModeLive
 )
 
-type OverlayConfig struct {
-	FontFamily      string
-	FontSize        int
-	Color           walk.Color
-	BackgroundColor walk.Color
-}
-
 type Overlay struct {
 	overlayWindow *OverlayDialog
 	position      walk.Rectangle
@@ -180,8 +173,28 @@ func (o *Overlay) Show() {
 			o.overlayWindow.Dialog.Accept()
 		})
 
+		settingsAction := walk.NewAction()
+		settingsAction.SetText("Customization settings")
+		settingsAction.Triggered().Once(func() {
+			code, _ := RunSettingsDialog(o.overlayWindow.Dialog, o.overlayWindow.config, func(c *OverlayConfig) {
+				c.BackgroundColor = parseColor(c.BackgroundColorText)
+			}, func() {
+				_ = o.overlayWindow.Widget.Invalidate() // redraw
+			})
+
+			if code == 1 {
+				// persist to configuration
+				AssignToConfig(o.captureConfig, o.overlayWindow.config)
+				_ = config.Write(o.captureConfig)
+			}
+
+			o.reopen = true
+			o.overlayWindow.Dialog.Accept()
+		})
+
 		menu, _ := walk.NewMenu()
 		menu.Actions().Add(placementModeAction)
+		menu.Actions().Add(settingsAction)
 		menu.Actions().Add(closeAction)
 
 		o.overlayWindow.Dialog.SetContextMenu(menu)

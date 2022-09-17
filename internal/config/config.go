@@ -31,6 +31,7 @@ type CaptureConfig struct {
 	FilterThreshold         int
 	FilteredPreview         bool
 	EVEClientWindowTitle    string
+	EVEClientUIScaling      string
 	EVEGameLogsFolder       string
 	TestServer              bool
 	RecorderShortcutText    string
@@ -52,6 +53,13 @@ type CaptureConfig struct {
 	AbyssWeather            string
 	SuppressNotifications   bool
 	OverlayPosition         walk.Rectangle
+	OverlayConfig           struct {
+		FontFamily      string
+		FontSize        int
+		BackgroundColor string
+		Color           string
+		Spacing         int
+	}
 }
 
 // SetRecorderShortcut satisfies ShortcutSetter interface.
@@ -119,6 +127,7 @@ func Read() (*CaptureConfig, error) {
 			FilteredPreview:         false,
 			AbyssTypeOverride:       false,
 			EVEGameLogsFolder:       eveGameLogsFolder,
+			EVEClientUIScaling:      "100",
 			RecorderShortcutText:    defaultRecorderShortcut.String(),
 			RecorderShortcut:        defaultRecorderShortcut,
 			Weather30ShortcutText:   defaultWeather30Shortcut.String(),
@@ -135,6 +144,19 @@ func Read() (*CaptureConfig, error) {
 			AbyssTier:               0,
 			AbyssWeather:            "Dark",
 			SuppressNotifications:   false,
+			OverlayConfig: struct {
+				FontFamily      string
+				FontSize        int
+				BackgroundColor string
+				Color           string
+				Spacing         int
+			}{
+				FontFamily:      "Verdana",
+				FontSize:        9,
+				BackgroundColor: "#000000",
+				Color:           "#FFFFFF",
+				Spacing:         15,
+			},
 		}
 		load = false
 	} else if err != nil {
@@ -184,6 +206,10 @@ func Read() (*CaptureConfig, error) {
 
 		if c.LootRecordDiscriminator == "" {
 			c.LootRecordDiscriminator = "Quafe"
+		}
+
+		if c.EVEClientUIScaling == "" {
+			c.EVEClientUIScaling = "100"
 		}
 
 		if c.AbyssShipType == 0 {
