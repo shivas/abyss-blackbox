@@ -44,12 +44,7 @@ func main() {
 	notificationChannel = make(chan NotificationMessage, 10)
 
 	overlayManager := overlay.New(
-		&overlay.OverlayConfig{
-			FontFamily:      "Verdana",
-			FontSize:        11,
-			Color:           walk.RGB(255, 255, 255),
-			BackgroundColor: walk.RGB(10, 10, 10),
-		},
+		overlay.FromCaptureConfig(currentSettings),
 		currentSettings,
 	)
 	defer overlayManager.Close()

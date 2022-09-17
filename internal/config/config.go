@@ -53,6 +53,13 @@ type CaptureConfig struct {
 	AbyssWeather            string
 	SuppressNotifications   bool
 	OverlayPosition         walk.Rectangle
+	OverlayConfig           struct {
+		FontFamily      string
+		FontSize        int
+		BackgroundColor string
+		Color           string
+		Spacing         int
+	}
 }
 
 // SetRecorderShortcut satisfies ShortcutSetter interface.
@@ -137,6 +144,19 @@ func Read() (*CaptureConfig, error) {
 			AbyssTier:               0,
 			AbyssWeather:            "Dark",
 			SuppressNotifications:   false,
+			OverlayConfig: struct {
+				FontFamily      string
+				FontSize        int
+				BackgroundColor string
+				Color           string
+				Spacing         int
+			}{
+				FontFamily:      "Verdana",
+				FontSize:        9,
+				BackgroundColor: "#000000",
+				Color:           "#FFFFFF",
+				Spacing:         15,
+			},
 		}
 		load = false
 	} else if err != nil {
