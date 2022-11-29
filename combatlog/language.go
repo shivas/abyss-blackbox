@@ -44,6 +44,11 @@ func init() {
 		ListenerRe:     regexp.MustCompile(`(?m)^\s*收听者:\s(.*)$`),
 		SessionStartRe: regexp.MustCompile(`(?m)^\s*进程开始:\s(.*)$`),
 	}
+
+	LanguageMatchers[LanguageCode_SPANISH] = LocalizedMatcher{
+		ListenerRe:     regexp.MustCompile(`(?m)^\s*Oyente:\s(.*)$`),
+		SessionStartRe: regexp.MustCompile(`(?m)^\s*Sesión iniciada:\s(.*)$`),
+	}
 }
 
 // LocalizedMatcher holds regexps for language to detect.

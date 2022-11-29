@@ -13,6 +13,7 @@ enum LanguageCode {
   KOREAN = 5;
   RUSSIAN = 6;
   CHINESE = 7;
+  SPANISH = 8;
 }
 
 message CombatLogRecord {

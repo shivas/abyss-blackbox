@@ -112,6 +112,7 @@ func TestReader_MapCharactersToFiles(t *testing.T) {
 					"testdata\\20201022_205944_french.txt",
 					"testdata\\20201022_205944_korean.txt",
 					"testdata\\20201022_205944_german.txt",
+					"testdata\\20201022_205944_spanish.txt",
 				},
 			},
 			r: r,
@@ -121,6 +122,7 @@ func TestReader_MapCharactersToFiles(t *testing.T) {
 				"French":  {Filename: "testdata\\20201022_205944_french.txt", LanguageCode: LanguageCode_FRENCH},
 				"Korean":  {Filename: "testdata\\20201022_205944_korean.txt", LanguageCode: LanguageCode_KOREAN},
 				"German":  {Filename: "testdata\\20201022_205944_german.txt", LanguageCode: LanguageCode_GERMAN},
+				"Spanish": {Filename: "testdata\\20201022_205944_spanish.txt", LanguageCode: LanguageCode_SPANISH},
 			},
 		},
 		// TODO: Add test cases.
