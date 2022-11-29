@@ -1,0 +1,7 @@
+------------------------------------------------------------
+  Registro de juego
+  Oyente: Spanish
+  Sesión iniciada: 2022.11.29 21:47:56
+------------------------------------------------------------
+[ 2022.11.29 21:47:57 ] (hint) Intentando unirse a un canal
+[ 2022.11.29 21:48:24 ] (question) Si cambias los ajustes de idioma, el cliente se reiniciará automáticamente para aplicar los cambios. ¿Quieres continuar?
