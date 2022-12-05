@@ -10,7 +10,7 @@ import (
 
 const ingestURL = "https://abyssal.space/action/ingest-autoupload"
 
-func Upload(filename, token string) (name string, err error) {
+func Upload(client *http.Client, filename string) (name string, err error) {
 	f, err := os.Open(filename)
 	if err != nil {
 		return filename, err
@@ -27,9 +27,7 @@ func Upload(filename, token string) (name string, err error) {
 		return filename, err
 	}
 
-	client := http.Client{
-		Transport: &transport{userAgent: "abyssal.space blackbox recorder", userToken: token},
-	}
+	req.Header.Set("Content-Type", "application/abyss-run-record")
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -43,18 +41,4 @@ func Upload(filename, token string) (name string, err error) {
 	}
 
 	return filename, nil
-}
-
-type transport struct {
-	userAgent string
-	userToken string
-	http.RoundTripper
-}
-
-func (t *transport) RoundTrip(r *http.Request) (*http.Response, error) {
-	r.Header.Set("User-Agent", t.userAgent)
-	r.Header.Set("Authorization", "Bearer "+t.userToken)
-	r.Header.Set("Content-Type", "application/abyss-run-record")
-
-	return http.DefaultTransport.RoundTrip(r)
 }

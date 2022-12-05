@@ -1,4 +1,4 @@
-package fittings
+package pb
 
 import (
 	"bytes"

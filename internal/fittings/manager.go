@@ -1,6 +1,7 @@
 package fittings
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -9,10 +10,13 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/shivas/abyss-blackbox/internal/fittings/pb"
+	"github.com/shivas/abyss-blackbox/internal/fittings/provider"
+
 	"google.golang.org/protobuf/proto"
 )
 
-//go:generate protoc -I ../../protobuf/ --go_opt=module=github.com/shivas/abyss-blackbox/internal/fittings --go_out=. fittings-cache.proto
+//go:generate protoc -I ../../protobuf/ --go_opt=module=github.com/shivas/abyss-blackbox/internal/fittings/pb --go_out=./pb fittings-cache.proto
 
 const (
 	cacheFileName = "fittings.db"
@@ -22,20 +26,95 @@ const (
 
 type FittingsManager struct {
 	sync.Mutex
-	cache FittingsCache
+	cache           pb.FittingsCache
+	importProviders []provider.FittingsProvider
+	httpClient      *http.Client
 }
 
-func NewManager() *FittingsManager {
-	m := &FittingsManager{}
+func NewManager(httpClient *http.Client, providers ...provider.FittingsProvider) *FittingsManager {
+	if httpClient == nil {
+		httpClient = http.DefaultClient
+	}
+
+	m := &FittingsManager{
+		httpClient: httpClient,
+	}
+
 	m.cache.Version = version
+	m.importProviders = providers
 	_ = m.LoadCache()
+
 	return m
 }
 
 func (m *FittingsManager) ClearAssignments() {
 	m.Lock()
 	defer m.Unlock()
-	m.cache.CharactersFittings = map[string]*FittingRecord{}
+	m.cache.CharactersFittings = map[string]*pb.FittingRecord{}
+}
+
+func (m *FittingsManager) AvailableProviders(ctx context.Context) map[string]provider.AvailabilityResult {
+	available := make(map[string]provider.AvailabilityResult)
+
+	for _, p := range m.importProviders {
+		available[p.SourceName()] = p.Available(ctx)
+	}
+
+	return available
+}
+
+func (m *FittingsManager) FetchFittingIDs(ctx context.Context, provider string) []string {
+	for _, p := range m.importProviders {
+		if p.SourceName() == provider {
+			return p.AvailableFittingIDs(ctx)
+		}
+	}
+
+	return nil
+}
+
+func (m *FittingsManager) ImportFittings(ctx context.Context, source string, callback func(current, max int)) error {
+	var provider provider.FittingsProvider
+
+	for _, p := range m.importProviders {
+		if p.SourceName() != source {
+			continue
+		}
+
+		if !p.Available(ctx).Available {
+			return fmt.Errorf("source is not available")
+		}
+		provider = p
+		break
+	}
+
+	fits := provider.AvailableFittingIDs(ctx)
+	current := 1
+
+	for _, fid := range fits {
+		fit, err := provider.GetFittingDetails(ctx, fid)
+		if err != nil {
+			return err
+		}
+
+		fID := fid
+
+		f := pb.FittingRecord{
+			Source:      source,
+			ForeignID:   &fID,
+			FittingName: fit.Item.Name,
+			EFT:         fit.Item.EFT,
+			FFH:         fit.Item.FFH,
+			ShipTypeID:  int32(fit.Item.Ship.ID),
+			ShipName:    fit.Item.Ship.Name,
+		}
+
+		m.AddFitting(&f)
+		callback(current, len(fits))
+		current++
+	}
+
+	return nil
 }
 
 func (m *FittingsManager) DeleteFitting(index int) {
@@ -45,11 +124,11 @@ func (m *FittingsManager) DeleteFitting(index int) {
 	m.cache.Fittings = append(m.cache.Fittings[:index], m.cache.Fittings[index+1:]...)
 }
 
-func (m *FittingsManager) GetFittingForPilot(characterName string) *FittingRecord {
+func (m *FittingsManager) GetFittingForPilot(characterName string) *pb.FittingRecord {
 	return m.cache.CharactersFittings[characterName]
 }
 
-func (m *FittingsManager) AddFitting(r *FittingRecord) (ID int, fitting *FittingRecord, err error) {
+func (m *FittingsManager) AddFitting(r *pb.FittingRecord) (ID int, fitting *pb.FittingRecord, err error) {
 	m.Lock()
 	defer m.Unlock()
 
@@ -69,7 +148,7 @@ func (m *FittingsManager) AddFitting(r *FittingRecord) (ID int, fitting *Fitting
 	return len(m.cache.Fittings), r, nil
 }
 
-func (m *FittingsManager) GetByID(ID int) *FittingRecord {
+func (m *FittingsManager) GetByID(ID int) *pb.FittingRecord {
 	m.Lock()
 	defer m.Unlock()
 
@@ -80,9 +159,9 @@ func (m *FittingsManager) GetByID(ID int) *FittingRecord {
 	return m.cache.Fittings[ID]
 }
 
-func (m *FittingsManager) AssignFittingToCharacter(f *FittingRecord, characterName string) {
+func (m *FittingsManager) AssignFittingToCharacter(f *pb.FittingRecord, characterName string) {
 	if m.cache.CharactersFittings == nil {
-		m.cache.CharactersFittings = make(map[string]*FittingRecord)
+		m.cache.CharactersFittings = make(map[string]*pb.FittingRecord)
 	}
 
 	m.cache.CharactersFittings[characterName] = f

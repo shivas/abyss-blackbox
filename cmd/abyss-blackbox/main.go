@@ -12,10 +12,14 @@ import (
 	"github.com/disintegration/imaging"
 	"github.com/lxn/walk"
 	"github.com/lxn/win"
+	"golang.org/x/exp/slog"
+
 	"github.com/shivas/abyss-blackbox/combatlog"
+	"github.com/shivas/abyss-blackbox/internal/app/api/client"
 	"github.com/shivas/abyss-blackbox/internal/charmanager"
 	"github.com/shivas/abyss-blackbox/internal/config"
 	"github.com/shivas/abyss-blackbox/internal/fittings"
+	"github.com/shivas/abyss-blackbox/internal/fittings/provider"
 	"github.com/shivas/abyss-blackbox/internal/mainwindow"
 	"github.com/shivas/abyss-blackbox/internal/overlay"
 	"github.com/shivas/abyss-blackbox/internal/uploader"
@@ -33,6 +37,8 @@ var (
 
 func main() {
 	var err error
+
+	slog.SetDefault(slog.New(slog.HandlerOptions{Level: slog.DebugLevel}.NewTextHandler(os.Stdout)))
 
 	currentSettings, err := config.Read()
 	if err != nil {
@@ -70,13 +76,16 @@ func main() {
 		notificationChannel <- NotificationMessage{Title: s1, Message: s2}
 	})
 
+	authenticatedHTTPClient := client.New(charManager)
+	fittingsManager := fittings.NewManager(authenticatedHTTPClient, provider.NewTrackerFittingsProvider(authenticatedHTTPClient))
+
 	actions := make(map[string]walk.EventHandler)
 	actions["add_character"] = charManager.EventHandlerCharAdd
 	actions["show_overlay"] = func() {
 		overlayManager.ToggleOverlay()
 	}
 
-	armw := mainwindow.NewAbyssRecorderWindow(currentSettings, drawStuff, comboModel, actions, clr, fittings.NewManager())
+	armw := mainwindow.NewAbyssRecorderWindow(currentSettings, drawStuff, comboModel, actions, clr, fittingsManager)
 	_ = charManager.MainWindow(armw).LoadCache() // assign window to control widgets
 	charManager.RefreshUI()
 	armw.MainWindow.Closing().Once(func(canceled *bool, reason walk.CloseReason) {
@@ -160,15 +169,15 @@ func main() {
 			char := charManager.ActiveCharacter()
 
 			if armw.AutoUploadCheckbox.Checked() && char != nil && errr == nil {
-				go func(fn string, t string) {
-					uploadFile, uploadErr := uploader.Upload(fn, t)
+				go func(fn string) {
+					uploadFile, uploadErr := uploader.Upload(authenticatedHTTPClient, fn)
 					if uploadErr != nil {
 						walk.MsgBox(armw.MainWindow, "Record uploading error", uploadErr.Error(), walk.MsgBoxIconWarning)
 					} else {
 						notificationChannel <- NotificationMessage{Title: "Record uploaded successfully", Message: uploadFile}
 						overlayManager.ChangeProperty(overlay.TODO, "Record uploaded successfully", &overlay.GreenColor)
 					}
-				}(filename, char.CharacterToken)
+				}(filename)
 			}
 
 			_ = armw.MainWindow.Menu().Actions().At(0).SetVisible(true)
@@ -226,7 +235,7 @@ func main() {
 			)
 			if errr != nil {
 				walk.MsgBox(armw.MainWindow, "Error capturing window area, restart of application is needed.", errr.Error(), walk.MsgBoxIconWarning)
-				fmt.Printf("error lost capture window: %v", err)
+				slog.Error("error lost capture window: %v", err)
 				os.Exit(1) // exit
 			}
 
@@ -238,20 +247,20 @@ func main() {
 				select {
 				case previewChannel <- img3:
 				default:
-					log.Println("preview channel full, dropping frame")
+					slog.Debug("preview channel full, dropping frame")
 				}
 			} else {
 				select {
 				case previewChannel <- img:
 				default:
-					log.Println("preview channel full, dropping frame")
+					slog.Debug("preview channel full, dropping frame")
 				}
 			}
 
 			select {
 			case recordingChannel <- img3:
 			default:
-				log.Println("recorder channel is full, dropping frame")
+				slog.Debug("recorder channel is full, dropping frame")
 			}
 
 			win.InvalidateRect(cw.Handle(), nil, false)

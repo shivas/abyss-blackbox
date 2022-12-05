@@ -1,28 +1,72 @@
 package mainwindow
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"sort"
+	"time"
 
 	"github.com/lxn/walk"
-	. "github.com/lxn/walk/declarative" // nolint:stylecheck,revive // we needs side effects
+	. "github.com/lxn/walk/declarative" //nolint:stylecheck,revive // we needs side effects
 	"github.com/shivas/abyss-blackbox/internal/fittings"
+	"golang.org/x/exp/slog"
+
+	fittingspb "github.com/shivas/abyss-blackbox/internal/fittings/pb"
 )
 
 func RunManageFittingsDialog(owner walk.Form, conf interface{}, fm *fittings.FittingsManager, pilots []string) (int, error) {
 	var (
-		dlg                    *walk.Dialog
-		db                     *walk.DataBinder
-		acceptPB, cancelPB     *walk.PushButton
-		fittingsView           *walk.TableView
-		importClipboardButton  *walk.PushButton
-		clearAssignmentsButton *walk.PushButton
-		importGroupBox         *walk.GroupBox
-		assignMenu             *walk.Menu
-		unassignMenu           *walk.Menu
-		fittingsModel          *fittings.FittingsModel
+		dlg                      *walk.Dialog
+		db                       *walk.DataBinder
+		acceptPB, cancelPB       *walk.PushButton
+		fittingsView             *walk.TableView
+		importClipboardButton    *walk.PushButton
+		importAbyssTrackerButton *walk.PushButton
+		clearAssignmentsButton   *walk.PushButton
+		importGroupBox           *walk.GroupBox
+		assignMenu               *walk.Menu
+		unassignMenu             *walk.Menu
+		fittingsModel            *fittings.FittingsModel
 	)
+
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+
+		providers := fm.AvailableProviders(context.Background())
+		slog.Debug("available providers", slog.Any("providers", providers))
+
+		tracker := providers["abyss.eve-nt.uk"]
+		if importAbyssTrackerButton != nil {
+			importAbyssTrackerButton.SetEnabled(tracker.Available)
+
+			if tracker.Err != nil {
+				_ = importAbyssTrackerButton.SetToolTipText(tracker.Err.Error())
+			}
+
+			originalButtonText := importAbyssTrackerButton.Text()
+
+			if tracker.Available {
+				importAbyssTrackerButton.Clicked().Attach(func() {
+					func(original string) {
+						importAbyssTrackerButton.SetEnabled(false)
+						defer func(text string) {
+							fittingsModel.PublishRowsReset()
+							importAbyssTrackerButton.SetEnabled(true)
+							_ = importAbyssTrackerButton.SetText(text)
+						}(original)
+
+						err := fm.ImportFittings(context.Background(), "abyss.eve-nt.uk", func(current, max int) {
+							_ = importAbyssTrackerButton.SetText(fmt.Sprintf("importing %d of %d", current, max))
+						})
+						if err != nil {
+							slog.Error("error importing fit", err)
+						}
+					}(originalButtonText)
+				})
+			}
+		}
+	}()
 
 	pilotActions := make([]MenuItem, 0)
 	pilotUnassignActions := make([]MenuItem, 0)
@@ -45,7 +89,7 @@ func RunManageFittingsDialog(owner walk.Form, conf interface{}, fm *fittings.Fit
 				}
 
 				fm.AssignFittingToCharacter(fit, name)
-				fmt.Printf("Assigned fit: %q to character: %q\n", fit.FittingName, name)
+				slog.Info("Assigned fit to character", slog.String("fitting", fit.FittingName), slog.String("character", name))
 			},
 		})
 
@@ -53,7 +97,7 @@ func RunManageFittingsDialog(owner walk.Form, conf interface{}, fm *fittings.Fit
 			Text: name,
 			OnTriggered: func() {
 				fm.AssignFittingToCharacter(nil, name)
-				fmt.Printf("Unassigned fit for character: %q\n", name)
+				slog.Info("Unassigned fit for character", slog.String("character", name))
 			},
 		})
 	}
@@ -70,7 +114,7 @@ func RunManageFittingsDialog(owner walk.Form, conf interface{}, fm *fittings.Fit
 			DataSource: conf,
 			OnSubmitted: func() {
 				_ = fm.PersistCache()
-				fmt.Printf("fittings saved")
+				slog.Info("fittings saved")
 			},
 		},
 		MinSize: Size{Width: 600, Height: 400},
@@ -95,6 +139,8 @@ func RunManageFittingsDialog(owner walk.Form, conf interface{}, fm *fittings.Fit
 							{Title: "Fitting name"},
 							{Title: "Ship"},
 							{Title: "FFH"},
+							{Title: "Source"},
+							{Title: "Source ID"},
 						},
 						ContextMenuItems: []MenuItem{
 							Menu{
@@ -144,13 +190,18 @@ func RunManageFittingsDialog(owner walk.Form, conf interface{}, fm *fittings.Fit
 												return
 											}
 
-											_, _, err = fm.AddFitting(&fittings.FittingRecord{Source: "manual", EFT: eft})
+											_, _, err = fm.AddFitting(&fittingspb.FittingRecord{Source: "manual", EFT: eft})
 											if err != nil {
 												walk.MsgBox(dlg, "Error importing EFT from clipboard", err.Error(), walk.MsgBoxIconWarning)
 											}
 
 											fittingsModel.PublishRowsReset()
 										},
+									},
+									PushButton{
+										AssignTo: &importAbyssTrackerButton,
+										Text:     "Import my fits from abyss.eve-nt.uk",
+										Enabled:  false,
 									},
 								},
 							},

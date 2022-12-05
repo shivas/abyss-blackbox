@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"embed"
 	"image"
-	_ "image/png" //nolint:revive,stylecheck // side effects
+	_ "image/png" //nolint:revive // we needs side effects
 
 	"github.com/lxn/walk"
 	"github.com/shivas/abyss-blackbox/internal/config"

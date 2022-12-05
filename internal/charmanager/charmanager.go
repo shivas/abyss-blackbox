@@ -292,6 +292,17 @@ func (c *CharManager) ActiveCharacter() *Character {
 	return c.activeCharacter
 }
 
+func (c *CharManager) GetActiveCharacterToken(_ context.Context) string {
+	c.Lock()
+	defer c.Unlock()
+
+	if c.activeCharacter == nil {
+		return ""
+	}
+
+	return c.activeCharacter.CharacterToken
+}
+
 func (c *CharManager) EventHandlerCharAdd() {
 	log.Print("clicked add character")
 
