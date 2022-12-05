@@ -43,6 +43,15 @@ func (m *FittingsModel) Value(row, col int) interface{} {
 
 	case 2:
 		return item.FFH
+
+	case 3:
+		return item.Source
+
+	case 4:
+		if item.ForeignID == nil {
+			return ""
+		}
+		return *item.ForeignID
 	}
 
 	panic("unexpected col")
@@ -82,8 +91,11 @@ func (m *FittingsModel) Sort(col int, order walk.SortOrder) error {
 		case 1:
 			return c(a.ShipName < b.ShipName)
 
-		case 2, 3:
+		case 2, 4:
 			return c(a.FFH < b.FFH)
+
+		case 3:
+			return c(a.Source < b.Source)
 		}
 
 		panic("unreachable")

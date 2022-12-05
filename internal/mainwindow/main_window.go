@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/lxn/walk"
-	. "github.com/lxn/walk/declarative" // nolint:stylecheck,revive // we needs side effects
+	. "github.com/lxn/walk/declarative" //nolint:stylecheck,revive // we needs side effects
 	"github.com/lxn/win"
 	"github.com/shivas/abyss-blackbox/combatlog"
 	"github.com/shivas/abyss-blackbox/internal/config"
@@ -108,7 +108,7 @@ func NewAbyssRecorderWindow(
 			Items: []MenuItem{
 				Menu{
 					Text:     "Switch character",
-					Image:    21,
+					Image:    16,
 					AssignTo: &obj.CharacterSwitcherMenu,
 					Items:    []MenuItem{},
 					Enabled:  false,
@@ -121,7 +121,7 @@ func NewAbyssRecorderWindow(
 				Separator{},
 				Menu{
 					Text:     "Presets",
-					Image:    28,
+					Image:    23,
 					AssignTo: &obj.PresetSwitcherMenu,
 					Items:    []MenuItem{},
 					Enabled:  false,
@@ -129,6 +129,7 @@ func NewAbyssRecorderWindow(
 				Separator{},
 				Action{
 					Text:        "Overlay",
+					Image:       25,
 					OnTriggered: actions["show_overlay"],
 				},
 			},

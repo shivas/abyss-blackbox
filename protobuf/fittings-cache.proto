@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package protobuf;
 
-option go_package = "github.com/shivas/abyss-blackbox/internal/fittings";
+option go_package = "github.com/shivas/abyss-blackbox/internal/fittings/pb";
 
 message FittingsCache {
     repeated FittingRecord fittings = 1;

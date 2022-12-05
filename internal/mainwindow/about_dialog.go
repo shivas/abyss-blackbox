@@ -1,6 +1,5 @@
+//nolint:stylecheck,revive // we needs side effects
 package mainwindow
-
-//nolint:revive,stylecheck // side effects
 
 import (
 	"bytes"
@@ -12,7 +11,6 @@ import (
 	"github.com/pkg/browser"
 
 	_ "embed"
-
 	_ "image/png"
 
 	"github.com/shivas/abyss-blackbox/internal/version"

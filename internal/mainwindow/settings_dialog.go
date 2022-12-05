@@ -6,7 +6,7 @@ import (
 	"github.com/shivas/abyss-blackbox/internal/config"
 
 	"github.com/lxn/walk"
-	. "github.com/lxn/walk/declarative" // nolint:stylecheck,revive // we needs side effects
+	. "github.com/lxn/walk/declarative" //nolint:stylecheck,revive // we needs side effects
 )
 
 type ShortcutSetter interface {
