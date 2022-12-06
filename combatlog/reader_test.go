@@ -30,6 +30,7 @@ func TestReader_GetLogFiles(t *testing.T) {
 				"testdata\\20201022_205944_french.txt",
 				"testdata\\20201022_205944_german.txt",
 				"testdata\\20201022_205944_korean.txt",
+				"testdata\\20201022_205944_spanish.txt",
 				"testdata\\20201022_222559.txt",
 				"testdata\\20201022_222614.txt",
 				"testdata\\20201022_222614_newer.txt",
