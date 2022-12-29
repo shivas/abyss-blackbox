@@ -91,7 +91,6 @@ func RunAboutDialog(owner walk.Form) (int, error) {
 			},
 		},
 	}.Create(owner)
-
 	if err != nil {
 		log.Fatal(err)
 	}

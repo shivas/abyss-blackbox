@@ -116,6 +116,7 @@ func (r *Recorder) StartLoop() {
 					r.notificationChannel <- NotificationMessage{Title: "Abyssal.Space recorder", Message: "Loot captured from clipboard!"}
 					r.overlay.ChangeProperty(overlay.Status, "Recording...", &overlay.GreenColor)
 					r.overlay.ChangeProperty(overlay.TODO, "Loot captured from clipboard!", &overlay.YellowColor)
+
 					go func() {
 						time.Sleep(5 * time.Second)
 						r.overlay.ChangeProperty(overlay.TODO, "", nil)

@@ -36,7 +36,7 @@ func RunSettingsDialog(owner walk.Form, conf interface{}, onSettingsSubmit func(
 				}
 			},
 		},
-		//MinSize: Size{Width: 500, Height: 300},
+		// MinSize: Size{Width: 500, Height: 300},
 		Layout: VBox{},
 		Children: []Widget{
 			GroupBox{

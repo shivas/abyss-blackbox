@@ -9,9 +9,11 @@ import (
 	"golang.org/x/exp/slog"
 )
 
-const availabilityURL = "https://abyssal.space/api/private/fittings/abyss-tracker/available"
-const listFittingsURL = "https://abyssal.space/api/private/fittings/abyss-tracker/fits"
-const importFittingURL = "https://abyssal.space/api/private/fittings/abyss-tracker/fits/%s"
+const (
+	availabilityURL  = "https://abyssal.space/api/private/fittings/abyss-tracker/available"
+	listFittingsURL  = "https://abyssal.space/api/private/fittings/abyss-tracker/fits"
+	importFittingURL = "https://abyssal.space/api/private/fittings/abyss-tracker/fits/%s"
+)
 
 func NewTrackerFittingsProvider(client *http.Client) *trackerFittingsProvider {
 	if client == nil {

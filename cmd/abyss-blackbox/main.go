@@ -6,7 +6,6 @@ import (
 	"image/color"
 	"log"
 	"os"
-	"regexp"
 	"time"
 
 	"github.com/disintegration/imaging"
@@ -23,6 +22,7 @@ import (
 	"github.com/shivas/abyss-blackbox/internal/mainwindow"
 	"github.com/shivas/abyss-blackbox/internal/overlay"
 	"github.com/shivas/abyss-blackbox/internal/uploader"
+	"github.com/shivas/abyss-blackbox/internal/window"
 	"github.com/shivas/abyss-blackbox/screen"
 )
 
@@ -38,16 +38,23 @@ var (
 func main() {
 	var err error
 
-	slog.SetDefault(slog.New(slog.HandlerOptions{Level: slog.DebugLevel}.NewTextHandler(os.Stdout)))
+	slog.SetDefault(slog.New(slog.HandlerOptions{Level: slog.LevelDebug}.NewTextHandler(os.Stdout)))
 
 	currentSettings, err := config.Read()
 	if err != nil {
-		log.Fatal(err)
+		slog.Error("failed loading settings", err)
+		os.Exit(1)
 	}
 
 	previewChannel = make(chan image.Image, 10)
 	recordingChannel = make(chan *image.Paletted, 10)
 	notificationChannel = make(chan NotificationMessage, 10)
+
+	windowsManager, err := window.NewManager()
+	if err != nil {
+		slog.Error("window manager initialization failed", err)
+		os.Exit(1)
+	}
 
 	overlayManager := overlay.New(
 		overlay.FromCaptureConfig(currentSettings),
@@ -64,11 +71,8 @@ func main() {
 
 	defer recorder.StopLoop()
 
-	foundEVEClientWindows, _ := screen.FindWindow(regexp.MustCompile(EVEClientWindowRe))
-	foundEVEClientWindows = foundEVEClientWindows.EnsureUniqueNames()
-
 	comboModel := make([]*mainwindow.WindowComboBoxItem, 0)
-	for handle, title := range foundEVEClientWindows {
+	for handle, title := range windowsManager.GetEVEClientWindows() {
 		comboModel = append(comboModel, &mainwindow.WindowComboBoxItem{WindowTitle: title, WindowHandle: handle})
 	}
 
@@ -107,7 +111,7 @@ func main() {
 
 	_ = charManager.SetActiveCharacter(currentSettings.ActiveCharacter)
 
-	if len(foundEVEClientWindows) == 0 {
+	if len(windowsManager.GetEVEClientWindows()) == 0 {
 		walk.MsgBox(armw.MainWindow, "No signed in EVE clients detected", "Please login with atleast one character and then restart this application", walk.MsgBoxIconWarning)
 	}
 
@@ -230,7 +234,7 @@ func main() {
 
 		for range t.C {
 			img, errr := screen.CaptureWindowArea(
-				foundEVEClientWindows.GetHandleByTitle(currentSettings.EVEClientWindowTitle),
+				windowsManager.GetHandleByTitle(currentSettings.EVEClientWindowTitle),
 				image.Rectangle{Min: image.Point{X: currentSettings.X, Y: currentSettings.Y}, Max: image.Point{X: currentSettings.X + armw.RecorderWidth, Y: currentSettings.Y + currentSettings.H}},
 			)
 			if errr != nil {
