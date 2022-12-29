@@ -13,26 +13,26 @@ import (
 	"github.com/lxn/win"
 	"golang.org/x/exp/slog"
 
-	"github.com/shivas/abyss-blackbox/combatlog"
 	"github.com/shivas/abyss-blackbox/internal/app/api/client"
+	"github.com/shivas/abyss-blackbox/internal/app/domain"
+	"github.com/shivas/abyss-blackbox/internal/app/recorder"
 	"github.com/shivas/abyss-blackbox/internal/charmanager"
 	"github.com/shivas/abyss-blackbox/internal/config"
 	"github.com/shivas/abyss-blackbox/internal/fittings"
 	"github.com/shivas/abyss-blackbox/internal/fittings/provider"
 	"github.com/shivas/abyss-blackbox/internal/mainwindow"
 	"github.com/shivas/abyss-blackbox/internal/overlay"
+	"github.com/shivas/abyss-blackbox/internal/screen"
 	"github.com/shivas/abyss-blackbox/internal/uploader"
 	"github.com/shivas/abyss-blackbox/internal/window"
-	"github.com/shivas/abyss-blackbox/screen"
+	"github.com/shivas/abyss-blackbox/pkg/combatlog"
 )
-
-const EVEClientWindowRe = "^EVE -.*$"
 
 var (
 	previewChannel      chan image.Image
 	recordingChannel    chan *image.Paletted
-	notificationChannel chan NotificationMessage
-	recorder            *Recorder
+	notificationChannel chan domain.NotificationMessage
+	rec                 *recorder.Recorder
 )
 
 func main() {
@@ -48,7 +48,7 @@ func main() {
 
 	previewChannel = make(chan image.Image, 10)
 	recordingChannel = make(chan *image.Paletted, 10)
-	notificationChannel = make(chan NotificationMessage, 10)
+	notificationChannel = make(chan domain.NotificationMessage, 10)
 
 	windowsManager, err := window.NewManager()
 	if err != nil {
@@ -66,10 +66,10 @@ func main() {
 
 	// combatlog reader init
 	clr := combatlog.NewReader(currentSettings.EVEGameLogsFolder)
-	recorder = NewRecorder(recordingChannel, currentSettings, notificationChannel, clr, overlayManager)
-	recorder.StartLoop()
+	rec = recorder.NewRecorder(recordingChannel, currentSettings, notificationChannel, clr, overlayManager)
+	rec.StartLoop()
 
-	defer recorder.StopLoop()
+	defer rec.StopLoop()
 
 	comboModel := make([]*mainwindow.WindowComboBoxItem, 0)
 	for handle, title := range windowsManager.GetEVEClientWindows() {
@@ -77,7 +77,7 @@ func main() {
 	}
 
 	charManager := charmanager.New(func(s1, s2 string) {
-		notificationChannel <- NotificationMessage{Title: s1, Message: s2}
+		notificationChannel <- domain.NotificationMessage{Title: s1, Message: s2}
 	})
 
 	authenticatedHTTPClient := client.New(charManager)
@@ -101,7 +101,7 @@ func main() {
 			_ = armw.MainWindow.SetTitle("Abyssal.Space Blackbox Recorder - " + char.CharacterName)
 		}
 
-		notificationChannel <- NotificationMessage{Title: "Active character set to:", Message: char.CharacterName}
+		notificationChannel <- domain.NotificationMessage{Title: "Active character set to:", Message: char.CharacterName}
 
 		currentSettings.ActiveCharacter = char.CharacterID
 		armw.AutoUploadCheckbox.SetEnabled(char.CharacterID > 0)
@@ -122,7 +122,7 @@ func main() {
 	}()
 
 	// notification routine
-	go func(nc chan NotificationMessage, ni *walk.NotifyIcon) {
+	go func(nc chan domain.NotificationMessage, ni *walk.NotifyIcon) {
 		for msg := range nc {
 			if !currentSettings.SuppressNotifications {
 				_ = ni.ShowMessage(msg.Title, msg.Message)
@@ -131,7 +131,7 @@ func main() {
 	}(notificationChannel, notificationIcon)
 
 	recordingButtonHandler := func() {
-		if recorder.Status() == RecorderStopped {
+		if rec.Status() == recorder.RecorderStopped {
 			if runnerModel, ok := armw.RunnerTableView.Model().(*mainwindow.RunnerModel); ok {
 				checkedChars := runnerModel.GetCheckedCharacters()
 
@@ -145,7 +145,7 @@ func main() {
 					return
 				}
 
-				recorder.Start(checkedChars)
+				rec.Start(checkedChars)
 			}
 
 			overlayManager.ChangeProperty(overlay.Autoupload, fmt.Sprintf("Autoupload enabled: %t", armw.AutoUploadCheckbox.Checked()), &overlay.CyanColor)
@@ -165,7 +165,7 @@ func main() {
 			_ = armw.Toolbar.Actions().At(3).SetEnabled(false)
 			_ = armw.RecordingButton.SetText("Stop recording")
 		} else {
-			filename, errr := recorder.Stop(armw.FittingManager)
+			filename, errr := rec.Stop(armw.FittingManager)
 			if errr != nil {
 				walk.MsgBox(armw.MainWindow, "Error writing recording", errr.Error(), walk.MsgBoxIconWarning)
 			}
@@ -178,7 +178,7 @@ func main() {
 					if uploadErr != nil {
 						walk.MsgBox(armw.MainWindow, "Record uploading error", uploadErr.Error(), walk.MsgBoxIconWarning)
 					} else {
-						notificationChannel <- NotificationMessage{Title: "Record uploaded successfully", Message: uploadFile}
+						notificationChannel <- domain.NotificationMessage{Title: "Record uploaded successfully", Message: uploadFile}
 						overlayManager.ChangeProperty(overlay.TODO, "Record uploaded successfully", &overlay.GreenColor)
 					}
 				}(filename)
@@ -213,11 +213,11 @@ func main() {
 		case config.HotkeyRecoder:
 			recordingButtonHandler()
 		case config.HotkeyWeather30:
-			recorder.GetWeatherStrengthListener(30)()
+			rec.GetWeatherStrengthListener(30)()
 		case config.HotkeyWeather50:
-			recorder.GetWeatherStrengthListener(50)()
+			rec.GetWeatherStrengthListener(50)()
 		case config.HotkeyWeather70:
-			recorder.GetWeatherStrengthListener(70)()
+			rec.GetWeatherStrengthListener(70)()
 		case config.Overlay:
 			overlayManager.ToggleOverlay()
 		}
@@ -271,7 +271,7 @@ func main() {
 		}
 	}(armw.CaptureWidget)
 
-	walk.Clipboard().ContentsChanged().Attach(recorder.ClipboardListener)
+	walk.Clipboard().ContentsChanged().Attach(rec.ClipboardListener)
 
 	defer func() {
 		err = config.Write(currentSettings)
@@ -281,11 +281,6 @@ func main() {
 	}()
 
 	armw.MainWindow.Run()
-}
-
-type NotificationMessage struct {
-	Title   string
-	Message string
 }
 
 // CreateNotificationIcon creates walk.NotifyIcon that can be used to send notifications to user

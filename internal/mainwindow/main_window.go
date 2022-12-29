@@ -8,9 +8,9 @@ import (
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative" //nolint:stylecheck,revive // we needs side effects
 	"github.com/lxn/win"
-	"github.com/shivas/abyss-blackbox/combatlog"
 	"github.com/shivas/abyss-blackbox/internal/config"
 	"github.com/shivas/abyss-blackbox/internal/fittings"
+	"github.com/shivas/abyss-blackbox/pkg/combatlog"
 )
 
 const presetToolbarAction = 3

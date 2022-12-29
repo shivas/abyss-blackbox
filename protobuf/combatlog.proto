@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package combatlog;
 
-option go_package = "github.com/shivas/abyss-blackbox/combatlog";
+option go_package = "github.com/shivas/abyss-blackbox/pkg/combatlog";
 
 enum LanguageCode {
   UNKNOWN = 0;

@@ -2,9 +2,9 @@ syntax = "proto3";
 
 package protobuf;
 
-option go_package = "github.com/shivas/abyss-blackbox/encoding";
+option go_package = "github.com/shivas/abyss-blackbox/pkg/encoding";
 
-import "protobuf/combatlog.proto";
+import "combatlog.proto";
 
 message AbyssRecording {
 
