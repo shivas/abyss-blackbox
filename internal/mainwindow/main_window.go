@@ -9,6 +9,7 @@ import (
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative" //nolint:stylecheck,revive // we needs side effects
 	"github.com/lxn/win"
+	"github.com/shivas/abyss-blackbox/internal/app/domain"
 	"github.com/shivas/abyss-blackbox/internal/config"
 	"github.com/shivas/abyss-blackbox/internal/fittings"
 	"github.com/shivas/abyss-blackbox/pkg/combatlog"
@@ -63,6 +64,7 @@ func NewAbyssRecorderWindow(
 	actions map[string]walk.EventHandler,
 	clr *combatlog.Reader,
 	fm *fittings.FittingsManager,
+	serverProvider domain.ServerProvider,
 ) *AbyssRecorderWindow {
 	obj := AbyssRecorderWindow{FittingManager: fm}
 
@@ -326,6 +328,7 @@ func NewAbyssRecorderWindow(
 									},
 									HSpacer{},
 									GroupBox{
+										Visible:   false,
 										Title:     "Server flag:",
 										Layout:    VBox{},
 										Alignment: AlignHNearVNear,
@@ -335,6 +338,7 @@ func NewAbyssRecorderWindow(
 												Text:      "Test Server (Singularity)",
 												Alignment: AlignHNearVNear,
 												Checked:   Bind("TestServer"),
+												Enabled:   false,
 											},
 										},
 									},
@@ -469,6 +473,15 @@ func NewAbyssRecorderWindow(
 		_, _ = RunSettingsDialog(obj.MainWindow, c, settingsChangedHandler)
 	})
 
+	obj.CaptureWindowComboBox.CurrentIndexChanged().Attach(func() {
+		if obj.CaptureWindowComboBox.CurrentIndex() < 0 && obj.CaptureWindowComboBox.CurrentIndex() > len(comboBoxModel)-1 {
+			return
+		}
+
+		handle := comboBoxModel[obj.CaptureWindowComboBox.CurrentIndex()].WindowHandle
+		obj.TestServer.SetChecked(serverProvider.IsTestingServer(handle))
+	})
+
 	chooser := NewAbyssTypeChooser(obj.AbyssTypeToolbar, c.(*config.CaptureConfig))
 	chooser.Init()
 
@@ -479,7 +492,7 @@ func NewAbyssRecorderWindow(
 func WidgetDrawFn(
 	previewChannel chan image.Image,
 	recordingChannel chan *image.Paletted,
-) func(*walk.Canvas, walk.Rectangle) error {
+) walk.PaintFunc {
 	return func(canvas *walk.Canvas, updateBounds walk.Rectangle) error {
 		select {
 		case img := <-previewChannel:

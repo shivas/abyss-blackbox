@@ -88,6 +88,7 @@ func Run() (err error) {
 		actions,
 		clr,
 		fittingsManager,
+		windowsManager,
 	)
 	_ = charManager.MainWindow(armw).LoadCache() // assign window to control widgets
 	charManager.RefreshUI()
@@ -160,7 +161,7 @@ func Run() (err error) {
 			armw.RunnerTableView.SetEnabled(false)
 			armw.ManageFittingsButton.SetEnabled(false)
 			armw.CaptureSettingsGroup.SetEnabled(false)
-			armw.TestServer.SetEnabled(false)
+			//armw.TestServer.SetEnabled(false)
 			_ = armw.Toolbar.Actions().At(3).SetEnabled(false)
 			_ = armw.RecordingButton.SetText("Stop recording")
 		} else {
@@ -188,7 +189,7 @@ func Run() (err error) {
 			armw.RunnerTableView.SetEnabled(true)
 			armw.ManageFittingsButton.SetEnabled(true)
 			armw.CaptureSettingsGroup.SetEnabled(true)
-			armw.TestServer.SetEnabled(true)
+			//armw.TestServer.SetEnabled(true)
 			_ = armw.Toolbar.Actions().At(3).SetEnabled(true)
 			_ = armw.RecordingButton.SetText("Start recording")
 
