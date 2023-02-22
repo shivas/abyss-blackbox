@@ -12,10 +12,6 @@ import (
 	"github.com/disintegration/gift"
 )
 
-func CaptureWindowArea(handle syscall.Handle, rect image.Rectangle) (image.Image, error) {
-	return captureWindow(handle, rect)
-}
-
 var (
 	modUser32     = syscall.NewLazyDLL("User32.dll")
 	procGetDC     = modUser32.NewProc("GetDC")

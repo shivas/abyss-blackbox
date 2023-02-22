@@ -18,6 +18,8 @@ tasks:
     desc: Install dependencies needed to build release
     cmds:
       - go install github.com/gonutz/rsrc@latest
+      - go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28
+
     silent: true
 
   resources:

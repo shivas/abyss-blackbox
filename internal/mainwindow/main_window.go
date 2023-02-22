@@ -1,6 +1,7 @@
 package mainwindow
 
 import (
+	"image"
 	"log"
 	"syscall"
 	"time"
@@ -472,6 +473,33 @@ func NewAbyssRecorderWindow(
 	chooser.Init()
 
 	return &obj
+}
+
+// DrawStuff returns draw function main window preview custom widget.
+func WidgetDrawFn(
+	previewChannel chan image.Image,
+	recordingChannel chan *image.Paletted,
+) func(*walk.Canvas, walk.Rectangle) error {
+	return func(canvas *walk.Canvas, updateBounds walk.Rectangle) error {
+		select {
+		case img := <-previewChannel:
+			bmp, err := walk.NewBitmapFromImageForDPI(img, 96)
+			if err != nil {
+				return err
+			}
+
+			defer bmp.Dispose()
+
+			err = canvas.DrawImagePixels(bmp, walk.Point{X: 0, Y: 0})
+			if err != nil {
+				return err
+			}
+		default:
+			return nil
+		}
+
+		return nil
+	}
 }
 
 func (m *AbyssRecorderWindow) RefreshPresets(c *config.CaptureConfig) {

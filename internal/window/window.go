@@ -1,6 +1,7 @@
 package window
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"sync"
@@ -13,6 +14,8 @@ import (
 
 const EVEClientWindowRe = "^EVE -.*$"
 
+var ErrNoWindowsFound = errors.New("no EVE client windows found")
+
 var (
 	titleRe = regexp.MustCompile(EVEClientWindowRe)
 
@@ -24,11 +27,12 @@ func NewManager() (*Manager, error) {
 	m := &Manager{}
 
 	results, err := m.findEVEWindows()
+	m.queryResults = results
+
 	if err != nil {
-		return nil, err
+		return m, err
 	}
 
-	m.queryResults = results
 	m.queryResults.getWindowsAttributes()
 	m.queryResults.ensureUniqueNames()
 
@@ -73,7 +77,7 @@ func (m *Manager) findEVEWindows() (*queryWindowsResult, error) {
 	}
 
 	if len(result.windows) == 0 {
-		return result, fmt.Errorf("no window with title '%s' found", titleRe.String())
+		return result, ErrNoWindowsFound
 	}
 
 	return result, nil
