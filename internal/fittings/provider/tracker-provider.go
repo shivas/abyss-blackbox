@@ -64,7 +64,7 @@ func (t *trackerFittingsProvider) Available(ctx context.Context) AvailabilityRes
 }
 
 func (*trackerFittingsProvider) SourceName() string {
-	return "abyss.eve-nt.uk"
+	return "abysstracker.com"
 }
 
 func (t *trackerFittingsProvider) AvailableFittingIDs(ctx context.Context) []string {

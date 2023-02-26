@@ -36,7 +36,7 @@ func RunManageFittingsDialog(owner walk.Form, conf interface{}, fm *fittings.Fit
 		providers := fm.AvailableProviders(context.Background())
 		slog.Debug("available providers", slog.Any("providers", providers))
 
-		tracker := providers["abyss.eve-nt.uk"]
+		tracker := providers["abysstracker.com"]
 		if importAbyssTrackerButton != nil {
 			importAbyssTrackerButton.SetEnabled(tracker.Available)
 
@@ -56,7 +56,7 @@ func RunManageFittingsDialog(owner walk.Form, conf interface{}, fm *fittings.Fit
 							_ = importAbyssTrackerButton.SetText(text)
 						}(original)
 
-						err := fm.ImportFittings(context.Background(), "abyss.eve-nt.uk", func(current, max int) {
+						err := fm.ImportFittings(context.Background(), "abysstracker.com", func(current, max int) {
 							_ = importAbyssTrackerButton.SetText(fmt.Sprintf("importing %d of %d", current, max))
 						})
 						if err != nil {
@@ -200,7 +200,7 @@ func RunManageFittingsDialog(owner walk.Form, conf interface{}, fm *fittings.Fit
 									},
 									PushButton{
 										AssignTo: &importAbyssTrackerButton,
-										Text:     "Import my fits from abyss.eve-nt.uk",
+										Text:     "Import my fits from abysstracker.com",
 										Enabled:  false,
 									},
 								},
