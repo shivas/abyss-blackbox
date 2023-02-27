@@ -9,8 +9,8 @@ require (
 	github.com/lxn/win v0.0.0-20210218163916-a377121e959e
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/shivas/go-windows-hlp v0.1.0
-	golang.org/x/exp v0.0.0-20221229185413-b6b61370dfa8
-	golang.org/x/sys v0.3.0
+	golang.org/x/exp v0.0.0-20230224173230-c95f2b4c22f2
+	golang.org/x/sys v0.5.0
 	google.golang.org/protobuf v1.28.1
 )
 
