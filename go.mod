@@ -15,7 +15,7 @@ require (
 )
 
 require (
-	golang.org/x/image v0.2.0 // indirect
+	golang.org/x/image v0.5.0 // indirect
 	gopkg.in/Knetic/govaluate.v3 v3.0.0 // indirect
 )
 
