@@ -23,6 +23,10 @@ var (
 	procGetWindowTextW = modUser32.NewProc("GetWindowTextW")
 )
 
+var SupportedWindowsFilter = func(w details) bool {
+	return !w.dx12 && w.language == "en"
+}
+
 func NewManager() (*Manager, error) {
 	m := &Manager{}
 
@@ -43,10 +47,12 @@ type Manager struct {
 	queryResults *queryWindowsResult
 }
 
-func (m *Manager) GetEVEClientWindows() map[syscall.Handle]string {
+func (m *Manager) GetEVEClientWindows(filter func(w details) bool) map[syscall.Handle]string {
 	result := make(map[syscall.Handle]string, len(m.queryResults.windows))
 	for h, w := range m.queryResults.windows {
-		result[h] = w.windowTitle
+		if filter(w) {
+			result[h] = w.windowTitle
+		}
 	}
 
 	return result

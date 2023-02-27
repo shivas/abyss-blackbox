@@ -64,7 +64,7 @@ func Run() (err error) {
 	defer rec.StopLoop()
 
 	comboModel := make([]*mainwindow.WindowComboBoxItem, 0)
-	for handle, title := range windowsManager.GetEVEClientWindows() {
+	for handle, title := range windowsManager.GetEVEClientWindows(window.SupportedWindowsFilter) {
 		comboModel = append(comboModel, &mainwindow.WindowComboBoxItem{WindowTitle: title, WindowHandle: handle})
 	}
 
@@ -111,8 +111,13 @@ func Run() (err error) {
 
 	_ = charManager.SetActiveCharacter(currentSettings.ActiveCharacter)
 
-	if len(windowsManager.GetEVEClientWindows()) == 0 {
-		walk.MsgBox(armw.MainWindow, "No signed in EVE clients detected", "Please login with atleast one character and then restart this application", walk.MsgBoxIconWarning)
+	if len(windowsManager.GetEVEClientWindows(window.SupportedWindowsFilter)) == 0 {
+		walk.MsgBox(armw.MainWindow, "Error: No supported EVE client windows detected",
+			`To use this application, you need to log in with at least one character.
+
+ If you already have a game running and a character logged in, it means that your EVE client is either using DirectX 12 or a language other than English.
+
+ Please reconfigure EVE client accordingly and restart this application.`, walk.MsgBoxIconWarning)
 	}
 
 	notificationIcon := createNotificationIcon(armw.MainWindow)
