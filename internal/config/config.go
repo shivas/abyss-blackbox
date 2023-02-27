@@ -85,7 +85,6 @@ func (c *CaptureConfig) SetRecorderShortcut(shorcutType int, s walk.Shortcut) {
 		c.OverlayShortcut = s
 		c.OverlayShortcutText = s.String()
 	}
-
 }
 
 // Read reads configuration from json file, or creates one if file doesn't exist

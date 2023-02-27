@@ -2,7 +2,7 @@ package combatlog
 
 import "regexp"
 
-//go:generate protoc -I ../protobuf/ --go_opt=module=github.com/shivas/abyss-blackbox --go_out=.. combatlog.proto
+//go:generate protoc -I ../../protobuf/ --go_opt=paths=source_relative --go_out=. combatlog.proto
 
 // LanguageMatchers holds default initialized regexps for all languages.
 var LanguageMatchers LocalizedMatchers

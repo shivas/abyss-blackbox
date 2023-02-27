@@ -5,8 +5,8 @@ import (
 	"sort"
 
 	"github.com/lxn/walk"
-	"github.com/shivas/abyss-blackbox/combatlog"
 	"github.com/shivas/abyss-blackbox/internal/fittings"
+	"github.com/shivas/abyss-blackbox/pkg/combatlog"
 )
 
 type Runner struct {

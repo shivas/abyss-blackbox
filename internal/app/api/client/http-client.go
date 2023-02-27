@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/shivas/abyss-blackbox/internal/app"
+	"github.com/shivas/abyss-blackbox/internal/app/domain"
 	"github.com/shivas/abyss-blackbox/internal/version"
 	"golang.org/x/exp/slog"
 )
 
 const agent = "abyssal.space blackbox recorder %s"
 
-func New(provider app.TokenProvider) *http.Client {
+func New(provider domain.TokenProvider) *http.Client {
 	return &http.Client{
 		Transport: &transport{
 			tokenProvider: provider,
@@ -23,7 +23,7 @@ func New(provider app.TokenProvider) *http.Client {
 type transport struct {
 	userAgent string
 	http.RoundTripper
-	tokenProvider app.TokenProvider
+	tokenProvider domain.TokenProvider
 }
 
 func (t *transport) RoundTrip(r *http.Request) (*http.Response, error) {

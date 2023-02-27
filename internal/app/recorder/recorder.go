@@ -1,4 +1,4 @@
-package main
+package recorder
 
 import (
 	"bytes"
@@ -13,12 +13,13 @@ import (
 	"time"
 
 	"github.com/lxn/walk"
-	"github.com/shivas/abyss-blackbox/combatlog"
-	"github.com/shivas/abyss-blackbox/encoding"
+	"github.com/shivas/abyss-blackbox/internal/app/domain"
 	"github.com/shivas/abyss-blackbox/internal/config"
 	"github.com/shivas/abyss-blackbox/internal/fittings"
 	"github.com/shivas/abyss-blackbox/internal/overlay"
 	"github.com/shivas/abyss-blackbox/internal/version"
+	"github.com/shivas/abyss-blackbox/pkg/combatlog"
+	"github.com/shivas/abyss-blackbox/pkg/encoding"
 )
 
 const (
@@ -38,7 +39,7 @@ type Recorder struct {
 	delays              []int
 	recordingName       string
 	lootRecords         []*encoding.LootRecord
-	notificationChannel chan NotificationMessage
+	notificationChannel chan domain.NotificationMessage
 	combatlogReader     *combatlog.Reader
 	charactersTracking  map[string]combatlog.CombatLogFile
 	weatherStrength     int
@@ -46,7 +47,7 @@ type Recorder struct {
 }
 
 // NewRecorder constructs Recorder
-func NewRecorder(frameChan chan *image.Paletted, c *config.CaptureConfig, nc chan NotificationMessage, clr *combatlog.Reader, overlay *overlay.Overlay) *Recorder {
+func NewRecorder(frameChan chan *image.Paletted, c *config.CaptureConfig, nc chan domain.NotificationMessage, clr *combatlog.Reader, ol *overlay.Overlay) *Recorder {
 	return &Recorder{
 		frameChan:           frameChan,
 		loot:                make(chan string, 2),
@@ -59,7 +60,7 @@ func NewRecorder(frameChan chan *image.Paletted, c *config.CaptureConfig, nc cha
 		notificationChannel: nc,
 		combatlogReader:     clr,
 		charactersTracking:  make(map[string]combatlog.CombatLogFile),
-		overlay:             overlay,
+		overlay:             ol,
 	}
 }
 
@@ -89,7 +90,7 @@ func (r *Recorder) GetWeatherStrengthListener(strength int) func() {
 		r.mutex.Lock()
 		defer r.mutex.Unlock()
 		r.weatherStrength = strength
-		r.notificationChannel <- NotificationMessage{Title: "Abyssal.Space recorder", Message: fmt.Sprintf("Weather strength set to: %d%%", strength)}
+		r.notificationChannel <- domain.NotificationMessage{Title: "Abyssal.Space recorder", Message: fmt.Sprintf("Weather strength set to: %d%%", strength)}
 		r.overlay.ChangeProperty(overlay.Weather, fmt.Sprintf("Weather strength set to: %d%%", strength), &overlay.GreenColor)
 	}
 }
@@ -107,15 +108,16 @@ func (r *Recorder) StartLoop() {
 
 				switch r.state {
 				case RecorderAwaitingInitialLoot:
-					r.notificationChannel <- NotificationMessage{Title: "Abyssal.Space recording started...", Message: "Initial cargo received, awaiting cargo after fillament activation"}
+					r.notificationChannel <- domain.NotificationMessage{Title: "Abyssal.Space recording started...", Message: "Initial cargo received, awaiting cargo after fillament activation"}
 					r.overlay.ChangeProperty(overlay.TODO, "Activate fillament. Record loot after!", &overlay.RedColor)
 					r.overlay.ChangeProperty(overlay.Status, "Recording...", &overlay.GreenColor)
 					r.state = RecorderRunning
 					r.lootRecords = append(r.lootRecords, &encoding.LootRecord{Frame: 0, Loot: lootSnapshot})
 				case RecorderRunning:
-					r.notificationChannel <- NotificationMessage{Title: "Abyssal.Space recorder", Message: "Loot captured from clipboard!"}
+					r.notificationChannel <- domain.NotificationMessage{Title: "Abyssal.Space recorder", Message: "Loot captured from clipboard!"}
 					r.overlay.ChangeProperty(overlay.Status, "Recording...", &overlay.GreenColor)
 					r.overlay.ChangeProperty(overlay.TODO, "Loot captured from clipboard!", &overlay.YellowColor)
+
 					go func() {
 						time.Sleep(5 * time.Second)
 						r.overlay.ChangeProperty(overlay.TODO, "", nil)
@@ -138,7 +140,7 @@ func (r *Recorder) StartLoop() {
 					r.delays = append(r.delays, 10)
 
 					if r.weatherStrength == 0 && (len(r.frames)%180 == 0) { // remind every 3 minutes skipping initial frame
-						r.notificationChannel <- NotificationMessage{"Reminder", "Please record weather strength!"}
+						r.notificationChannel <- domain.NotificationMessage{"Reminder", "Please record weather strength!"}
 						r.overlay.ChangeProperty(overlay.Weather, "Please record weather strength!", &overlay.SecondaryColor)
 					}
 				}
@@ -193,7 +195,7 @@ func (r *Recorder) Start(characters []string) {
 	r.lootRecords = make([]*encoding.LootRecord, 0)
 	r.weatherStrength = 0
 	r.state = RecorderAwaitingInitialLoot
-	r.notificationChannel <- NotificationMessage{Title: "Recording starting...", Message: "CTRL+A, CTRL+C your inventory"}
+	r.notificationChannel <- domain.NotificationMessage{Title: "Recording starting...", Message: "CTRL+A, CTRL+C your inventory"}
 	r.overlay.ChangeProperty(overlay.Status, "Recording starting", &overlay.CyanColor)
 	r.overlay.ChangeProperty(overlay.Weather, "TODO: Record weather strength", nil)
 	r.overlay.ChangeProperty(overlay.TODO, "TODO: CTRL+A, CTRL+C your inventory", nil)
@@ -243,7 +245,7 @@ func (r *Recorder) Stop(fm *fittings.FittingsManager) (string, error) {
 	}
 
 	defer func() {
-		r.notificationChannel <- NotificationMessage{Title: "Abyss recorder", Message: fmt.Sprintf("Abyss run successfully recorded to file: %s", r.recordingName)}
+		r.notificationChannel <- domain.NotificationMessage{Title: "Abyss recorder", Message: fmt.Sprintf("Abyss run successfully recorded to file: %s", r.recordingName)}
 		r.overlay.ChangeProperty(overlay.TODO, "Abyss run successfully recorded to file", &overlay.GreenColor)
 		r.overlay.ChangeProperty(overlay.Status, "Recorder on standby", &overlay.YellowColor)
 	}()

@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/shivas/abyss-blackbox/encoding"
+	"github.com/shivas/abyss-blackbox/pkg/encoding"
 )
 
 func main() {

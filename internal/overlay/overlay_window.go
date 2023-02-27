@@ -7,12 +7,14 @@ import (
 	. "github.com/lxn/walk/declarative"
 )
 
-var PrimaryColor walk.Color = walk.RGB(194, 176, 226)
-var SecondaryColor walk.Color = walk.RGB(239, 108, 0)
-var GreenColor walk.Color = walk.RGB(76, 175, 80)
-var YellowColor walk.Color = walk.RGB(223, 235, 37)
-var CyanColor walk.Color = walk.RGB(0, 137, 123)
-var RedColor walk.Color = walk.RGB(255, 47, 0)
+var (
+	PrimaryColor   walk.Color = walk.RGB(194, 176, 226)
+	SecondaryColor walk.Color = walk.RGB(239, 108, 0)
+	GreenColor     walk.Color = walk.RGB(76, 175, 80)
+	YellowColor    walk.Color = walk.RGB(223, 235, 37)
+	CyanColor      walk.Color = walk.RGB(0, 137, 123)
+	RedColor       walk.Color = walk.RGB(255, 47, 0)
+)
 
 type OverlayDialog struct {
 	Dialog *walk.Dialog
@@ -28,7 +30,7 @@ func CreateDialog(owner walk.Form, c *OverlayConfig, s *overlayState) *OverlayDi
 		AssignTo: &od.Dialog,
 		Visible:  false,
 		Title:    "Overlay",
-		//DefaultButton: &acceptPB,
+		// DefaultButton: &acceptPB,
 		Layout: VBox{MarginsZero: true, SpacingZero: true},
 		Children: []Widget{
 			CustomWidget{

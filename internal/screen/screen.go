@@ -6,25 +6,16 @@ import (
 	"fmt"
 	"image"
 	"reflect"
-	"regexp"
 	"syscall"
 	"unsafe"
 
 	"github.com/disintegration/gift"
-	"golang.org/x/sys/windows"
 )
 
-func CaptureWindowArea(handle syscall.Handle, rect image.Rectangle) (image.Image, error) {
-	return captureWindow(handle, rect)
-}
-
 var (
-	modUser32          = syscall.NewLazyDLL("User32.dll")
-	procGetClientRect  = modUser32.NewProc("GetClientRect")
-	procGetDC          = modUser32.NewProc("GetDC")
-	procReleaseDC      = modUser32.NewProc("ReleaseDC")
-	procEnumWindows    = modUser32.NewProc("EnumWindows")
-	procGetWindowTextW = modUser32.NewProc("GetWindowTextW")
+	modUser32     = syscall.NewLazyDLL("User32.dll")
+	procGetDC     = modUser32.NewProc("GetDC")
+	procReleaseDC = modUser32.NewProc("ReleaseDC")
 
 	modGdi32   = syscall.NewLazyDLL("Gdi32.dll")
 	procBitBlt = modGdi32.NewProc("BitBlt")
@@ -43,11 +34,6 @@ const (
 	// BitBlt constants
 	bitBltSRCCOPY = 0x00CC0020
 )
-
-// Windows RECT structure
-type winRect struct {
-	Left, Top, Right, Bottom int32
-}
 
 // http://msdn.microsoft.com/en-us/library/windows/desktop/dd183375.aspx
 type winBITMAPINFO struct {
@@ -78,106 +64,6 @@ type winRGBQUAD struct {
 	RgbReserved byte
 }
 
-// FoundWindows holds map between window handle and window title
-type FoundWindows map[syscall.Handle]string
-
-// EnsureUniqueNames renames windows if duplicate names found, possible if Tranquility and Singularity clients running at the same time with same character logged in.
-func (fw FoundWindows) EnsureUniqueNames() FoundWindows {
-	z := 1
-
-	for i, name1 := range fw {
-		for j, name2 := range fw {
-			if i == j {
-				continue
-			}
-
-			if name1 == name2 {
-				fw[j] = fmt.Sprintf("%s - %d", name2, z)
-				z++
-			}
-		}
-	}
-
-	return fw
-}
-
-func (fw FoundWindows) GetHandleByTitle(title string) syscall.Handle {
-	for handle, wtitle := range fw {
-		if wtitle == title {
-			return handle
-		}
-	}
-
-	return 0
-}
-
-func (fw FoundWindows) GetWindowsTitles() []string {
-	result := []string{}
-	for _, wtitle := range fw {
-		result = append(result, wtitle)
-	}
-
-	return result
-}
-
-// FindWindow enumerates windows and returns map of FoundWindows with handle associated with title matching provided regex
-func FindWindow(title *regexp.Regexp) (FoundWindows, error) {
-	results := make(FoundWindows)
-	cb := syscall.NewCallback(func(h syscall.Handle, p uintptr) uintptr {
-		b := make([]uint16, 200)
-		_, err := GetWindowText(h, &b[0], int32(len(b)))
-		if err != nil {
-			// ignore the error
-			return 1 // enumeration continue
-		}
-		windowTitle := windows.UTF16ToString(b)
-		if title.Find([]byte(windowTitle)) != nil {
-			// note the window
-			results[h] = windowTitle
-		}
-		return 1 // enumeration continue
-	})
-
-	err := enumWindows(cb, 0)
-	if err != nil {
-		return results, err
-	}
-
-	if len(results) == 0 {
-		return results, fmt.Errorf("no window with title '%s' found", title.String())
-	}
-
-	return results, nil
-}
-
-// GetWindowText returns window title
-func GetWindowText(hwnd syscall.Handle, str *uint16, maxCount int32) (length int32, err error) {
-	r0, _, e1 := syscall.Syscall(procGetWindowTextW.Addr(), 3, uintptr(hwnd), uintptr(unsafe.Pointer(str)), uintptr(maxCount))
-
-	length = int32(r0)
-	if length == 0 {
-		if e1 != 0 {
-			err = error(e1)
-		} else {
-			err = syscall.EINVAL
-		}
-	}
-
-	return
-}
-
-// WindowRect gets the dimensions for a Window handle.
-func WindowRect(hwnd syscall.Handle) (image.Rectangle, error) {
-	var rect winRect
-
-	ret, _, err := procGetClientRect.Call(uintptr(hwnd), uintptr(unsafe.Pointer(&rect)))
-	if ret == 0 {
-		return image.Rectangle{}, fmt.Errorf("error getting window dimensions: %s", err)
-	}
-
-	return image.Rect(0, 0, int(rect.Right), int(rect.Bottom)), nil
-}
-
 // captureWindow captures the desired area from a Window and returns an image.
 func captureWindow(handle syscall.Handle, rect image.Rectangle) (image.Image, error) {
 	// Get the device context for screenshotting
@@ -186,7 +72,7 @@ func captureWindow(handle syscall.Handle, rect image.Rectangle) (image.Image, er
 		return nil, fmt.Errorf("error preparing screen capture: %s", err)
 	}
 
-	defer procReleaseDC.Call(0, dcSrc) // nolint:errcheck // it's fine
+	defer procReleaseDC.Call(0, dcSrc) //nolint:errcheck // it's fine
 
 	// Grab a compatible DC for drawing
 	dcDst, _, err := procCreateCompatibleDC.Call(dcSrc)
@@ -194,7 +80,7 @@ func captureWindow(handle syscall.Handle, rect image.Rectangle) (image.Image, er
 		return nil, fmt.Errorf("error creating DC for drawing: %s", err)
 	}
 
-	defer procDeleteDC.Call(dcDst) // nolint:errcheck // it's fine
+	defer procDeleteDC.Call(dcDst) //nolint:errcheck // it's fine
 
 	// Determine the width/height of our capture
 	width := rect.Dx()
@@ -211,7 +97,8 @@ func captureWindow(handle syscall.Handle, rect image.Rectangle) (image.Image, er
 		BiCompression: 0, // BI_RGB
 	}
 
-	bitmapData := unsafe.Pointer(uintptr(0))
+	zero := uintptr(0)
+	bitmapData := unsafe.Pointer(&zero)
 	bitmap, _, err := procCreateDIBSection.Call(
 		dcDst,
 		uintptr(unsafe.Pointer(&bitmapInfo)),
@@ -254,17 +141,4 @@ func captureWindow(handle syscall.Handle, rect image.Rectangle) (image.Image, er
 	gift.New(gift.FlipVertical()).Draw(dst, img)
 
 	return dst, nil
-}
-
-func enumWindows(enumFunc, lparam uintptr) (err error) {
-	r1, _, e1 := syscall.Syscall(procEnumWindows.Addr(), 2, enumFunc, lparam, 0)
-	if r1 == 0 {
-		if e1 != 0 {
-			err = error(e1)
-		} else {
-			err = syscall.EINVAL
-		}
-	}
-
-	return
 }

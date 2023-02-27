@@ -5,7 +5,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/shivas/abyss-blackbox/combatlog"
+	"github.com/shivas/abyss-blackbox/pkg/combatlog"
 )
 
 func TestAbyssRecording_Encode(t *testing.T) {

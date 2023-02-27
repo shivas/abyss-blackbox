@@ -1,6 +1,7 @@
 package mainwindow
 
 import (
+	"image"
 	"log"
 	"syscall"
 	"time"
@@ -8,9 +9,10 @@ import (
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative" //nolint:stylecheck,revive // we needs side effects
 	"github.com/lxn/win"
-	"github.com/shivas/abyss-blackbox/combatlog"
+	"github.com/shivas/abyss-blackbox/internal/app/domain"
 	"github.com/shivas/abyss-blackbox/internal/config"
 	"github.com/shivas/abyss-blackbox/internal/fittings"
+	"github.com/shivas/abyss-blackbox/pkg/combatlog"
 )
 
 const presetToolbarAction = 3
@@ -62,6 +64,7 @@ func NewAbyssRecorderWindow(
 	actions map[string]walk.EventHandler,
 	clr *combatlog.Reader,
 	fm *fittings.FittingsManager,
+	serverProvider domain.ServerProvider,
 ) *AbyssRecorderWindow {
 	obj := AbyssRecorderWindow{FittingManager: fm}
 
@@ -325,6 +328,7 @@ func NewAbyssRecorderWindow(
 									},
 									HSpacer{},
 									GroupBox{
+										Visible:   false,
 										Title:     "Server flag:",
 										Layout:    VBox{},
 										Alignment: AlignHNearVNear,
@@ -334,6 +338,7 @@ func NewAbyssRecorderWindow(
 												Text:      "Test Server (Singularity)",
 												Alignment: AlignHNearVNear,
 												Checked:   Bind("TestServer"),
+												Enabled:   false,
 											},
 										},
 									},
@@ -468,10 +473,46 @@ func NewAbyssRecorderWindow(
 		_, _ = RunSettingsDialog(obj.MainWindow, c, settingsChangedHandler)
 	})
 
+	obj.CaptureWindowComboBox.CurrentIndexChanged().Attach(func() {
+		if obj.CaptureWindowComboBox.CurrentIndex() < 0 && obj.CaptureWindowComboBox.CurrentIndex() > len(comboBoxModel)-1 {
+			return
+		}
+
+		handle := comboBoxModel[obj.CaptureWindowComboBox.CurrentIndex()].WindowHandle
+		obj.TestServer.SetChecked(serverProvider.IsTestingServer(handle))
+	})
+
 	chooser := NewAbyssTypeChooser(obj.AbyssTypeToolbar, c.(*config.CaptureConfig))
 	chooser.Init()
 
 	return &obj
+}
+
+// DrawStuff returns draw function main window preview custom widget.
+func WidgetDrawFn(
+	previewChannel chan image.Image,
+	recordingChannel chan *image.Paletted,
+) walk.PaintFunc {
+	return func(canvas *walk.Canvas, updateBounds walk.Rectangle) error {
+		select {
+		case img := <-previewChannel:
+			bmp, err := walk.NewBitmapFromImageForDPI(img, 96)
+			if err != nil {
+				return err
+			}
+
+			defer bmp.Dispose()
+
+			err = canvas.DrawImagePixels(bmp, walk.Point{X: 0, Y: 0})
+			if err != nil {
+				return err
+			}
+		default:
+			return nil
+		}
+
+		return nil
+	}
 }
 
 func (m *AbyssRecorderWindow) RefreshPresets(c *config.CaptureConfig) {

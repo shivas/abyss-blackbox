@@ -1,6 +1,6 @@
 package encoding
 
-//go:generate protoc -I ../ --go_opt=module=github.com/shivas/abyss-blackbox --go_out=.. protobuf/abyssfile.proto
+//go:generate protoc -I ../../protobuf --go_opt=paths=source_relative --go_out=. abyssfile.proto
 
 import (
 	"bytes"
