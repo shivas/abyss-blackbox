@@ -1,15 +1,15 @@
 package main
 
 import (
+	"log/slog"
 	"os"
-
-	"golang.org/x/exp/slog"
 
 	"github.com/shivas/abyss-blackbox/internal/app"
 )
 
 func main() {
-	slog.SetDefault(slog.New(slog.HandlerOptions{Level: slog.LevelDebug}.NewTextHandler(os.Stdout)))
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	slog.SetDefault(logger)
 
 	err := app.Run()
 	if err != nil {

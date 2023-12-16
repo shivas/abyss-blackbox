@@ -2,11 +2,11 @@ package client
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/shivas/abyss-blackbox/internal/app/domain"
 	"github.com/shivas/abyss-blackbox/internal/version"
-	"golang.org/x/exp/slog"
 )
 
 const agent = "abyssal.space blackbox recorder %s"
