@@ -1,5 +1,6 @@
 Abyssal blackbox recorder
 ==
+[![Go](https://github.com/shivas/abyss-blackbox/actions/workflows/go.yml/badge.svg)](https://github.com/shivas/abyss-blackbox/actions/workflows/go.yml)
  
 This application is used as a telemetry recorder for Abyssal space runs in EVE Online. Analyzer available at https://abyssal.space
  
