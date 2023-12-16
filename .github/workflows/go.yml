@@ -1,0 +1,40 @@
+name: Go
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:    
+
+jobs:
+
+  build:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.21'
+        architecture: x64
+
+    - name: Setup taskfile.dev
+      uses: crazy-max/ghaction-chocolatey@v3
+      with:
+        args: install go-task
+
+    - name: Install Protoc
+      uses: arduino/setup-protoc@v2
+
+    - name: Install build dependencies
+      run: go install github.com/gonutz/rsrc@latest
+  
+    - name: Install UPX
+      uses: crazy-max/ghaction-upx@v3
+      with:
+        install-only: true
+
+    - name: Build and pack binaries
+      run: task pack
