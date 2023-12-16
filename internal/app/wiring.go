@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"image"
-	"log"
+	"log/slog"
+	"os"
 
 	"github.com/lxn/walk"
-	"golang.org/x/exp/slog"
 
 	"github.com/shivas/abyss-blackbox/internal/app/api/client"
 	"github.com/shivas/abyss-blackbox/internal/app/domain"
@@ -248,7 +248,8 @@ func Run() (err error) {
 	defer func() {
 		err = config.Write(currentSettings)
 		if err != nil {
-			log.Fatalf("failed to save settings after main window close: %v", err)
+			slog.Error("failed to save settings after main window close: %v", err)
+			os.Exit(1)
 		}
 	}()
 
@@ -262,38 +263,45 @@ func createNotificationIcon(mw *walk.MainWindow) *walk.NotifyIcon {
 	// We load our icon from a file.
 	icon, err := walk.Resources.Icon("7")
 	if err != nil {
-		log.Fatal(err)
+		slog.Error(err.Error())
+		os.Exit(1)
 	}
 
 	// Create the notify icon and make sure we clean it up on exit.
 	ni, err := walk.NewNotifyIcon(mw)
 	if err != nil {
-		log.Fatal(err)
+		slog.Error(err.Error())
+		os.Exit(1)
 	}
 
 	// Set the icon and a tool tip text.
 	if err := ni.SetIcon(icon); err != nil {
-		log.Fatal(err)
+		slog.Error(err.Error())
+		os.Exit(1)
 	}
 
 	if err := ni.SetToolTip("Click for info or use the context menu to exit."); err != nil {
-		log.Fatal(err)
+		slog.Error(err.Error())
+		os.Exit(1)
 	}
 
 	// We put an exit action into the context menu.
 	exitAction := walk.NewAction()
 	if err := exitAction.SetText("E&xit"); err != nil {
-		log.Fatal(err)
+		slog.Error(err.Error())
+		os.Exit(1)
 	}
 
 	exitAction.Triggered().Attach(func() { walk.App().Exit(0) })
 
 	if err := ni.ContextMenu().Actions().Add(exitAction); err != nil {
-		log.Fatal(err)
+		slog.Error(err.Error())
+		os.Exit(1)
 	}
 
 	if err := ni.SetVisible(true); err != nil {
-		log.Fatal(err)
+		slog.Error(err.Error())
+		os.Exit(1)
 	}
 
 	return ni

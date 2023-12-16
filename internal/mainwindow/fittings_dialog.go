@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
 	"sort"
 	"time"
 
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative" //nolint:stylecheck,revive // we needs side effects
 	"github.com/shivas/abyss-blackbox/internal/fittings"
-	"golang.org/x/exp/slog"
 
 	fittingspb "github.com/shivas/abyss-blackbox/internal/fittings/pb"
 )

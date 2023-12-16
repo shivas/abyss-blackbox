@@ -3,6 +3,7 @@ package mainwindow
 import (
 	"image"
 	"image/color"
+	"log/slog"
 	"os"
 	"time"
 
@@ -11,7 +12,6 @@ import (
 	"github.com/lxn/win"
 	"github.com/shivas/abyss-blackbox/internal/config"
 	"github.com/shivas/abyss-blackbox/internal/screen"
-	"golang.org/x/exp/slog"
 )
 
 func CustomWidgetDrawLoop(
