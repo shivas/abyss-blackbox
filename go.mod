@@ -10,7 +10,7 @@ require (
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/shivas/go-windows-hlp v0.1.0
 	golang.org/x/sys v0.15.0
-	google.golang.org/protobuf v1.31.0
+	google.golang.org/protobuf v1.33.0
 )
 
 require (
