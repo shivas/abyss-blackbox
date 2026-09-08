@@ -115,9 +115,9 @@ func Run() (err error) {
 		walk.MsgBox(armw.MainWindow, "Error: No supported EVE client windows detected",
 			`To use this application, you need to log in with at least one character.
 
- If you already have a game running and a character logged in, it means that your EVE client is either using DirectX 12 or a language other than English.
+ If you already have a game running and a character logged in, it means that your EVE client language is not English, or the recorder was started before the client.
 
- Please reconfigure EVE client accordingly and restart this application.`, walk.MsgBoxIconWarning)
+ Please use an English client and restart this application.`, walk.MsgBoxIconWarning)
 	}
 
 	notificationIcon := createNotificationIcon(armw.MainWindow)

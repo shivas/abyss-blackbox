@@ -13,9 +13,12 @@ import (
 )
 
 var (
-	modUser32     = syscall.NewLazyDLL("User32.dll")
-	procGetDC     = modUser32.NewProc("GetDC")
-	procReleaseDC = modUser32.NewProc("ReleaseDC")
+	modUser32          = syscall.NewLazyDLL("User32.dll")
+	procGetDC          = modUser32.NewProc("GetDC")
+	procReleaseDC      = modUser32.NewProc("ReleaseDC")
+	procClientToScreen = modUser32.NewProc("ClientToScreen")
+	procIsWindow       = modUser32.NewProc("IsWindow")
+	procIsIconic       = modUser32.NewProc("IsIconic")
 
 	modGdi32   = syscall.NewLazyDLL("Gdi32.dll")
 	procBitBlt = modGdi32.NewProc("BitBlt")
@@ -34,6 +37,10 @@ const (
 	// BitBlt constants
 	bitBltSRCCOPY = 0x00CC0020
 )
+
+type winPOINT struct {
+	X, Y int32
+}
 
 // http://msdn.microsoft.com/en-us/library/windows/desktop/dd183375.aspx
 type winBITMAPINFO struct {
@@ -64,10 +71,35 @@ type winRGBQUAD struct {
 	RgbReserved byte
 }
 
-// captureWindow captures the desired area from a Window and returns an image.
+// captureWindow captures a client-relative rect of hwnd from the composed desktop.
+//
+// EVE uses a DXGI flip-model swap chain. GetDC(hwnd)+BitBlt reads a stale GDI
+// redirection surface. GetDC(0) at ClientToScreen(hwnd)+rect reads live pixels.
+// See docs/easy_fix.md.
 func captureWindow(handle syscall.Handle, rect image.Rectangle) (image.Image, error) {
-	// Get the device context for screenshotting
-	dcSrc, _, err := procGetDC.Call(uintptr(handle))
+	width := rect.Dx()
+	height := rect.Dy()
+
+	// Preview loop treats capture errors as fatal. Missing/minimized windows
+	// must not BitBlt a random desktop patch at (X, Y).
+	if handle == 0 {
+		return image.NewRGBA(image.Rect(0, 0, width, height)), nil
+	}
+
+	if isWin, _, _ := procIsWindow.Call(uintptr(handle)); isWin == 0 {
+		return image.NewRGBA(image.Rect(0, 0, width, height)), nil
+	}
+
+	if iconic, _, _ := procIsIconic.Call(uintptr(handle)); iconic != 0 {
+		return image.NewRGBA(image.Rect(0, 0, width, height)), nil
+	}
+
+	origin := winPOINT{}
+	if ret, _, err := procClientToScreen.Call(uintptr(handle), uintptr(unsafe.Pointer(&origin))); ret == 0 {
+		return nil, fmt.Errorf("error mapping window to screen: %s", err)
+	}
+
+	dcSrc, _, err := procGetDC.Call(0)
 	if dcSrc == 0 {
 		return nil, fmt.Errorf("error preparing screen capture: %s", err)
 	}
@@ -81,10 +113,6 @@ func captureWindow(handle syscall.Handle, rect image.Rectangle) (image.Image, er
 	}
 
 	defer procDeleteDC.Call(dcDst) //nolint:errcheck // it's fine
-
-	// Determine the width/height of our capture
-	width := rect.Dx()
-	height := rect.Dy()
 
 	// Get the bitmap we're going to draw onto
 	var bitmapInfo winBITMAPINFO
@@ -113,9 +141,11 @@ func captureWindow(handle syscall.Handle, rect image.Rectangle) (image.Image, er
 
 	// Select the object and paint it
 	procSelectObject.Call(dcDst, bitmap) //nolint:errcheck // no needed
+	srcX := uintptr(int32(rect.Min.X) + origin.X)
+	srcY := uintptr(int32(rect.Min.Y) + origin.Y)
 	ret, _, err := procBitBlt.Call(
 		dcDst, 0, 0, uintptr(width), uintptr(height),
-		dcSrc, uintptr(rect.Min.X), uintptr(rect.Min.Y), bitBltSRCCOPY)
+		dcSrc, srcX, srcY, bitBltSRCCOPY)
 
 	if ret == 0 {
 		return nil, fmt.Errorf("error capturing screen: %s", err)
