@@ -30,7 +30,7 @@ func CustomWidgetDrawLoop(
 		img, err := capturer.CaptureWindowArea()
 		if err != nil {
 			walk.MsgBox(mw, "Error capturing window area, restart of application is needed.", err.Error(), walk.MsgBoxIconWarning)
-			slog.Error("error lost capture window: %v", err)
+			slog.Error("error lost capture window", slog.Any("err", err))
 			os.Exit(1) // exit
 		}
 

@@ -60,7 +60,7 @@ func RunManageFittingsDialog(owner walk.Form, conf interface{}, fm *fittings.Fit
 							_ = importAbyssTrackerButton.SetText(fmt.Sprintf("importing %d of %d", current, max))
 						})
 						if err != nil {
-							slog.Error("error importing fit", err)
+							slog.Error("error importing fit", slog.Any("err", err))
 						}
 					}(originalButtonText)
 				})

@@ -34,7 +34,7 @@ var (
 func Run() (err error) {
 	currentSettings, err := config.Read()
 	if err != nil {
-		slog.Error("failed loading settings", err)
+		slog.Error("failed loading settings", slog.Any("err", err))
 		return err
 	}
 
@@ -44,7 +44,7 @@ func Run() (err error) {
 
 	windowsManager, err := window.NewManager()
 	if err != nil && !errors.Is(err, window.ErrNoWindowsFound) {
-		slog.Error("window manager initialization failed", err)
+		slog.Error("window manager initialization failed", slog.Any("err", err))
 		return err
 	}
 
@@ -248,7 +248,7 @@ func Run() (err error) {
 	defer func() {
 		err = config.Write(currentSettings)
 		if err != nil {
-			slog.Error("failed to save settings after main window close: %v", err)
+			slog.Error("failed to save settings after main window close", slog.Any("err", err))
 			os.Exit(1)
 		}
 	}()

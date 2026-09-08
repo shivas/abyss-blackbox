@@ -13,6 +13,6 @@ func main() {
 
 	err := app.Run()
 	if err != nil {
-		slog.Error("error: ", err)
+		slog.Error("error", slog.Any("err", err))
 	}
 }
