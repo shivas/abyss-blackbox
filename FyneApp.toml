@@ -1,0 +1,8 @@
+Website = "https://abyssal.space"
+
+[Details]
+Name = "Abyssal.Space Blackbox Recorder"
+ID = "space.abyssal.blackbox"
+
+[Migrations]
+fyneDo = true

@@ -3,6 +3,7 @@ package window
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"regexp"
 	"sync"
 	"syscall"
@@ -29,28 +30,59 @@ var SupportedWindowsFilter = func(w details) bool {
 
 func NewManager() (*Manager, error) {
 	m := &Manager{}
-
-	results, err := m.findEVEWindows()
-	m.queryResults = results
-
-	if err != nil {
-		return m, err
-	}
-
-	m.queryResults.getWindowsAttributes()
-	m.queryResults.ensureUniqueNames()
-
-	return m, err
+	return m, m.Refresh()
 }
 
 type Manager struct {
+	mu           sync.RWMutex
 	queryResults *queryWindowsResult
 }
 
+func (m *Manager) Refresh() error {
+	results, err := m.findEVEWindows()
+	if err == nil {
+		results.getWindowsAttributes()
+		results.ensureUniqueNames()
+	}
+
+	m.mu.Lock()
+	m.queryResults = results
+	m.mu.Unlock()
+	m.logWindows()
+
+	return err
+}
+
+func (m *Manager) logWindows() {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	if m.queryResults == nil || len(m.queryResults.windows) == 0 {
+		slog.Info("no EVE client windows found")
+		return
+	}
+
+	for _, w := range m.queryResults.windows {
+		slog.Info("found EVE window",
+			"title", w.windowTitle,
+			"language", w.language,
+			"server", w.serverName,
+			"dx12", w.dx12,
+			"attrErr", w.err,
+		)
+	}
+}
+
 func (m *Manager) GetEVEClientWindows(filter func(w details) bool) map[syscall.Handle]string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	if m.queryResults == nil {
+		return map[syscall.Handle]string{}
+	}
+
 	result := make(map[syscall.Handle]string, len(m.queryResults.windows))
 	for h, w := range m.queryResults.windows {
-		if filter(w) {
+		if filter == nil || filter(w) {
 			result[h] = w.windowTitle
 		}
 	}
@@ -90,6 +122,13 @@ func (m *Manager) findEVEWindows() (*queryWindowsResult, error) {
 }
 
 func (m *Manager) GetHandleByTitle(title string) syscall.Handle {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	if m.queryResults == nil {
+		return 0
+	}
+
 	for handle, w := range m.queryResults.windows {
 		if w.windowTitle == title {
 			return handle
@@ -100,11 +139,25 @@ func (m *Manager) GetHandleByTitle(title string) syscall.Handle {
 }
 
 func (m *Manager) IsTestingServer(handle syscall.Handle) bool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	if m.queryResults == nil {
+		return false
+	}
+
 	return m.queryResults.windows[handle].serverName != "tranquility"
 }
 
 func (m *Manager) GetWindowsTitles() []string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
 	result := []string{}
+	if m.queryResults == nil {
+		return result
+	}
+
 	for _, w := range m.queryResults.windows {
 		result = append(result, w.windowTitle)
 	}
@@ -167,7 +220,9 @@ func (fw *queryWindowsResult) getWindowsAttributes() {
 			cLine, err := pcl.GetCommandLine(windows.HWND(handle))
 			if err != nil {
 				d.err = err
-
+				mu.Lock()
+				fw.windows[handle] = d
+				mu.Unlock()
 				return
 			}
 

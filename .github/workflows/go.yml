@@ -17,13 +17,18 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.21'
+        go-version: '1.26'
         architecture: x64
 
     - name: Setup taskfile.dev
       uses: crazy-max/ghaction-chocolatey@v3
       with:
         args: install go-task
+
+    - name: Install MinGW
+      uses: crazy-max/ghaction-chocolatey@v3
+      with:
+        args: install mingw -y
 
     - name: Install Protoc
       uses: arduino/setup-protoc@v2
@@ -37,4 +42,6 @@ jobs:
         install-only: true
 
     - name: Build and pack binaries
+      env:
+        CGO_ENABLED: '1'
       run: task pack

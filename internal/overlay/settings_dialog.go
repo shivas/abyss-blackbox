@@ -1,3 +1,5 @@
+//go:build walkui
+
 package overlay
 
 import (

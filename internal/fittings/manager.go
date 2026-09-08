@@ -148,6 +148,13 @@ func (m *FittingsManager) AddFitting(r *pb.FittingRecord) (ID int, fitting *pb.F
 	return len(m.cache.Fittings), r, nil
 }
 
+func (m *FittingsManager) Count() int {
+	m.Lock()
+	defer m.Unlock()
+
+	return len(m.cache.Fittings)
+}
+
 func (m *FittingsManager) GetByID(ID int) *pb.FittingRecord {
 	m.Lock()
 	defer m.Unlock()

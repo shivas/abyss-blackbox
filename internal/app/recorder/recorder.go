@@ -8,11 +8,9 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"runtime"
 	"sync"
 	"time"
 
-	"github.com/lxn/walk"
 	"github.com/shivas/abyss-blackbox/internal/app/domain"
 	"github.com/shivas/abyss-blackbox/internal/config"
 	"github.com/shivas/abyss-blackbox/internal/fittings"
@@ -64,17 +62,14 @@ func NewRecorder(frameChan chan *image.Paletted, c *config.CaptureConfig, nc cha
 	}
 }
 
-// ClipboardListener event listener used to capture Clipboard changes for loot recording
-func (r *Recorder) ClipboardListener() {
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	clipboard, err := walk.Clipboard().Text()
-	if err != nil {
+// OnClipboardText captures clipboard text for loot recording.
+func (r *Recorder) OnClipboardText(text string) {
+	if text == "" {
 		return
 	}
+
 	select {
-	case r.loot <- clipboard:
+	case r.loot <- text:
 	default:
 		log.Println("not recording, loot capture dropped")
 	}

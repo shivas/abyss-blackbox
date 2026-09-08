@@ -6,8 +6,6 @@ import (
 	"os/user"
 	"path/filepath"
 	"sync"
-
-	"github.com/lxn/walk"
 )
 
 const (
@@ -35,15 +33,15 @@ type CaptureConfig struct {
 	EVEGameLogsFolder       string
 	TestServer              bool
 	RecorderShortcutText    string
-	RecorderShortcut        walk.Shortcut
+	RecorderShortcut        Shortcut
 	Weather30ShortcutText   string
-	Weather30Shortcut       walk.Shortcut
+	Weather30Shortcut       Shortcut
 	Weather50ShortcutText   string
-	Weather50Shortcut       walk.Shortcut
+	Weather50Shortcut       Shortcut
 	Weather70ShortcutText   string
-	Weather70Shortcut       walk.Shortcut
+	Weather70Shortcut       Shortcut
 	OverlayShortcutText     string
-	OverlayShortcut         walk.Shortcut
+	OverlayShortcut         Shortcut
 	LootRecordDiscriminator string
 	ActiveCharacter         int32
 	AutoUpload              bool
@@ -52,7 +50,7 @@ type CaptureConfig struct {
 	AbyssTier               int
 	AbyssWeather            string
 	SuppressNotifications   bool
-	OverlayPosition         walk.Rectangle
+	OverlayPosition         Rectangle
 	OverlayConfig           struct {
 		FontFamily      string
 		FontSize        int
@@ -62,32 +60,28 @@ type CaptureConfig struct {
 	}
 }
 
-// SetRecorderShortcut satisfies ShortcutSetter interface.
-func (c *CaptureConfig) SetRecorderShortcut(shorcutType int, s walk.Shortcut) {
-	switch shorcutType {
+// SetRecorderShortcut satisfies ShortcutSetter.
+func (c *CaptureConfig) SetRecorderShortcut(shortcutType int, s Shortcut) {
+	switch shortcutType {
 	case HotkeyRecoder:
 		c.RecorderShortcut = s
 		c.RecorderShortcutText = s.String()
-
 	case HotkeyWeather30:
 		c.Weather30Shortcut = s
 		c.Weather30ShortcutText = s.String()
-
 	case HotkeyWeather50:
 		c.Weather50Shortcut = s
 		c.Weather50ShortcutText = s.String()
-
 	case HotkeyWeather70:
 		c.Weather70Shortcut = s
 		c.Weather70ShortcutText = s.String()
-
 	case Overlay:
 		c.OverlayShortcut = s
 		c.OverlayShortcutText = s.String()
 	}
 }
 
-// Read reads configuration from json file, or creates one if file doesn't exist
+// Read reads configuration from json file, or creates one if file doesn't exist.
 func Read() (*CaptureConfig, error) {
 	appDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
@@ -99,15 +93,14 @@ func Read() (*CaptureConfig, error) {
 	load := true
 	settingsFilename := filepath.Join(appDir, "settings.json")
 
-	defaultRecorderShortcut := walk.Shortcut{Modifiers: walk.ModControl | walk.ModAlt, Key: walk.KeyEnd}
-	defaultWeather30Shortcut := walk.Shortcut{Modifiers: walk.ModControl | walk.ModAlt, Key: walk.KeyNumpad3}
-	defaultWeather50Shortcut := walk.Shortcut{Modifiers: walk.ModControl | walk.ModAlt, Key: walk.KeyNumpad5}
-	defaultWeather70Shortcut := walk.Shortcut{Modifiers: walk.ModControl | walk.ModAlt, Key: walk.KeyNumpad7}
-	defaultOverlayShortcut := walk.Shortcut{Modifiers: walk.ModControl | walk.ModAlt, Key: walk.KeyInsert}
+	defaultRecorderShortcut := Shortcut{Modifiers: ModControl | ModAlt, Key: KeyEnd}
+	defaultWeather30Shortcut := Shortcut{Modifiers: ModControl | ModAlt, Key: KeyNumpad3}
+	defaultWeather50Shortcut := Shortcut{Modifiers: ModControl | ModAlt, Key: KeyNumpad5}
+	defaultWeather70Shortcut := Shortcut{Modifiers: ModControl | ModAlt, Key: KeyNumpad7}
+	defaultOverlayShortcut := Shortcut{Modifiers: ModControl | ModAlt, Key: KeyInsert}
 
 	_, err = os.Stat(settingsFilename)
 	if os.IsNotExist(err) {
-		// fetch current user folder and try to point to Gamelogs folder
 		usr, errr := user.Current()
 		if errr != nil {
 			return nil, errr
@@ -137,7 +130,7 @@ func Read() (*CaptureConfig, error) {
 			Weather70Shortcut:       defaultWeather70Shortcut,
 			OverlayShortcutText:     defaultOverlayShortcut.String(),
 			OverlayShortcut:         defaultOverlayShortcut,
-			OverlayPosition:         walk.Rectangle{200, 200, 200, 200},
+			OverlayPosition:         Rectangle{X: 200, Y: 200, Width: 200, Height: 200},
 			LootRecordDiscriminator: "Quafe",
 			AbyssShipType:           1,
 			AbyssTier:               0,
@@ -200,7 +193,7 @@ func Read() (*CaptureConfig, error) {
 		}
 
 		if c.OverlayPosition.Height == 0 {
-			c.OverlayPosition = walk.Rectangle{200, 200, 200, 200}
+			c.OverlayPosition = Rectangle{X: 200, Y: 200, Width: 200, Height: 200}
 		}
 
 		if c.LootRecordDiscriminator == "" {
@@ -231,7 +224,7 @@ func Read() (*CaptureConfig, error) {
 	return c, nil
 }
 
-// Write saves configuration to json file
+// Write saves configuration to json file.
 func Write(c *CaptureConfig) error {
 	settingsFilename := filepath.Join(c.AppRoot, "settings.json")
 
@@ -244,10 +237,5 @@ func Write(c *CaptureConfig) error {
 	encoder := json.NewEncoder(f)
 	encoder.SetIndent("", "  ")
 
-	err = encoder.Encode(c)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return encoder.Encode(c)
 }

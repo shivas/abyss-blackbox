@@ -1,3 +1,5 @@
+//go:build walkui
+
 //nolint:stylecheck,revive // we needs side effects
 package mainwindow
 

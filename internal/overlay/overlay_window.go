@@ -1,3 +1,5 @@
+//go:build walkui
+
 package overlay
 
 //nolint:revive,stylecheck // side effects

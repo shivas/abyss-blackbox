@@ -1,16 +1,27 @@
 # https://taskfile.dev
+# Fyne builds need CGO and a C compiler (MinGW gcc on Windows).
+# The first CGO compile can take several minutes.
 
 version: '3'
 
+vars:
+  GIT_VERSION:
+    sh: git describe --tags --always
+  GO_VERSION:
+    sh: go env GOVERSION
+
+env:
+  CGO_ENABLED: '1'
+
 tasks:
   default:
-    desc: Runs application
+    desc: Run the Fyne app with a console (logs visible)
     cmds:
       - go run ./cmd/abyss-blackbox/
     silent: true
 
   test:
-    desc: Run all the go tests.
+    desc: Run all the go tests
     cmds:
       - go test ./...
 
@@ -19,43 +30,40 @@ tasks:
     cmds:
       - go install github.com/gonutz/rsrc@latest
       - go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28
-
     silent: true
 
   resources:
-    desc: Compile resource file
+    desc: Embed the Windows exe icon and manifest
+    silent: true
     cmds:
-      - rsrc -arch amd64 -manifest ./cmd/abyss-blackbox/main.manifest -ico ./trig_96x96.ico,./images/plus.ico,./images/switch-char.ico,./images/select-area.ico,./images/overlay.ico -o ./cmd/abyss-blackbox/rsrc.syso 
+      - rsrc -arch amd64 -manifest ./cmd/abyss-blackbox/main.manifest -ico ./trig_96x96.ico -o ./cmd/abyss-blackbox/rsrc.syso
 
   debug:
-    desc: Builds artifacts for release
-    deps: [test, install-deps, resources]
+    desc: Build a console Fyne exe (logs visible)
+    deps: [resources]
     cmds:
       - go generate ./...
-      - go build -trimpath -ldflags "-s -w -X github.com/shivas/abyss-blackbox/internal/version.RecorderVersion={{.GIT_VERSION}} -X github.com/shivas/abyss-blackbox/internal/version.GoVersion={{.GO_VERSION}}" -o abyss-blackbox.exe ./cmd/abyss-blackbox 
-      - go build -trimpath -ldflags="-s -w" ./cmd/extract/
-    vars:
-      GIT_VERSION:
-        sh: git describe --tags --always
-      GO_VERSION:
-        sh: go env GOVERSION
-          
+      - go build -trimpath -ldflags "-s -w -X github.com/shivas/abyss-blackbox/internal/version.RecorderVersion={{.GIT_VERSION}} -X github.com/shivas/abyss-blackbox/internal/version.GoVersion={{.GO_VERSION}}" -o abyss-blackbox.exe ./cmd/abyss-blackbox/
+      - task: extract
+
   release:
-    desc: Builds artifacts for release
-    deps: [test, install-deps, resources]
+    desc: Build a GUI Fyne exe (no console window)
+    deps: [resources]
     cmds:
       - go generate ./...
-      - go build -trimpath -ldflags="-H windowsgui -s -w -X github.com/shivas/abyss-blackbox/internal/version.RecorderVersion={{.GIT_VERSION}} -X github.com/shivas/abyss-blackbox/internal/version.GoVersion={{.GO_VERSION}}" -o abyss-blackbox.exe ./cmd/abyss-blackbox 
-      - go build -trimpath -ldflags="-s -w" ./cmd/extract/
-    vars:
-      GIT_VERSION:
-        sh: git describe --tags --always
-      GO_VERSION:
-        sh: go env GOVERSION
+      - go build -trimpath -ldflags "-H windowsgui -s -w -X github.com/shivas/abyss-blackbox/internal/version.RecorderVersion={{.GIT_VERSION}} -X github.com/shivas/abyss-blackbox/internal/version.GoVersion={{.GO_VERSION}}" -o abyss-blackbox.exe ./cmd/abyss-blackbox/
+      - task: extract
+
+  extract:
+    desc: Build extract.exe (no CGO)
+    env:
+      CGO_ENABLED: '0'
+    cmds:
+      - go build -trimpath -ldflags="-s -w" -o extract.exe ./cmd/extract/
 
   pack:
-    desc: Compress executables with UPX
+    desc: Release build compressed with UPX
     deps: [release]
     cmds:
-      - upx abyss-blackbox.exe
-      - upx extract.exe
+      - upx --best --lzma abyss-blackbox.exe
+      - upx --best --lzma extract.exe

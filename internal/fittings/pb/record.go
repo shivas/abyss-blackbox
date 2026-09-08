@@ -5,46 +5,34 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
+	"image/color"
+	_ "image/png"
 	"net/http"
 	"strings"
-
-	"github.com/lxn/walk"
 )
 
-var emptyImage *walk.Bitmap
-
-func init() {
-	emptyImage, _ = walk.NewBitmapForDPI(walk.Size{Width: 32, Height: 32}, 92)
-}
-
-func (r *FittingRecord) ShipIcon() *walk.Icon {
-	img, _, err := image.Decode(bytes.NewReader(r.Icon))
-	if err != nil {
-		fmt.Printf("returning empty icon\n")
-		return &walk.Icon{}
+func emptyShipImage() image.Image {
+	img := image.NewRGBA(image.Rect(0, 0, 32, 32))
+	for y := 0; y < 32; y++ {
+		for x := 0; x < 32; x++ {
+			img.Set(x, y, color.RGBA{R: 40, G: 40, B: 40, A: 255})
+		}
 	}
 
-	icon, err := walk.NewIconFromImageForDPI(img, 92)
-	if err != nil {
-		return &walk.Icon{}
-	}
-
-	return icon
+	return img
 }
 
-func (r *FittingRecord) ShipImage() *walk.Bitmap {
+func (r *FittingRecord) ShipPicture() image.Image {
 	if r == nil || r.Icon == nil {
-		return emptyImage
+		return emptyShipImage()
 	}
 
 	img, _, err := image.Decode(bytes.NewReader(r.Icon))
 	if err != nil {
-		return emptyImage
+		return emptyShipImage()
 	}
 
-	bm, err := walk.NewBitmapFromImageForDPI(img, 92)
-
-	return bm
+	return img
 }
 
 func (r *FittingRecord) Validate() error {
@@ -76,7 +64,7 @@ func (r *FittingRecord) Validate() error {
 	r.ShipTypeID = int32(validateResponse.ShipTypeID)
 	r.ShipName = validateResponse.Ship
 	r.FittingName = validateResponse.FittingName
-	r.Price = 0.0 // perform price check?
+	r.Price = 0.0
 	r.FFH = validateResponse.FFH
 
 	return nil

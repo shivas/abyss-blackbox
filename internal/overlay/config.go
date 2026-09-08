@@ -4,25 +4,41 @@ import (
 	"encoding/hex"
 	"strings"
 
-	"github.com/lxn/walk"
 	"github.com/shivas/abyss-blackbox/internal/config"
+)
+
+type Color struct {
+	R, G, B byte
+}
+
+func (c Color) COLORREF() uint32 {
+	return uint32(c.R) | uint32(c.G)<<8 | uint32(c.B)<<16
+}
+
+var (
+	PrimaryColor   = Color{194, 176, 226}
+	SecondaryColor = Color{239, 108, 0}
+	GreenColor     = Color{76, 175, 80}
+	YellowColor    = Color{223, 235, 37}
+	CyanColor      = Color{0, 137, 123}
+	RedColor       = Color{255, 47, 0}
 )
 
 type OverlayConfig struct {
 	FontFamily          string
 	FontSize            int
-	Color               walk.Color
+	Color               Color
 	ColorText           string
-	BackgroundColor     walk.Color
+	BackgroundColor     Color
 	BackgroundColorText string
 	Spacing             int
 }
 
 func FromCaptureConfig(c *config.CaptureConfig) *OverlayConfig {
 	o := &OverlayConfig{}
-	o.BackgroundColor = parseColor(c.OverlayConfig.BackgroundColor)
+	o.BackgroundColor = ParseColor(c.OverlayConfig.BackgroundColor)
 	o.BackgroundColorText = c.OverlayConfig.BackgroundColor
-	o.Color = parseColor(c.OverlayConfig.Color)
+	o.Color = ParseColor(c.OverlayConfig.Color)
 	o.ColorText = c.OverlayConfig.Color
 	o.FontFamily = c.OverlayConfig.FontFamily
 	o.FontSize = c.OverlayConfig.FontSize
@@ -39,18 +55,18 @@ func AssignToConfig(c *config.CaptureConfig, o *OverlayConfig) {
 	c.OverlayConfig.Spacing = o.Spacing
 }
 
-func parseColor(s string) walk.Color {
-	def := walk.RGB(0, 0, 0)
+func ParseColor(s string) Color {
+	def := Color{0, 0, 0}
 
-	if !strings.HasPrefix(s, "#") || len(s) != 7 { // #RRGGBB
+	if !strings.HasPrefix(s, "#") || len(s) != 7 {
 		return def
 	}
 
-	r := hexToByte(s[1:3])
-	g := hexToByte(s[3:5])
-	b := hexToByte(s[5:7])
-
-	return walk.RGB(r, g, b)
+	return Color{
+		R: hexToByte(s[1:3]),
+		G: hexToByte(s[3:5]),
+		B: hexToByte(s[5:7]),
+	}
 }
 
 func hexToByte(s string) byte {
