@@ -117,33 +117,16 @@ func (o *Overlay) Show() {
 	handle := o.overlayWindow.Dialog.Handle()
 
 	if o.mode == ModePlacement {
-		win.SetWindowPos(handle,
-			win.HWND_TOPMOST, int32(o.position.X), int32(o.position.Y), int32(o.position.Height), int32(o.position.Width),
-			win.SWP_NOACTIVATE)
-
-		p := o.position
-		p.Y -= 32
-
-		if p.Y < 0 {
-			p.Y = 0
-		}
-
-		_ = o.overlayWindow.Dialog.SetBoundsPixels(p)
+		applyOverlayExStyle(handle)
+		setClientScreenRectPixels(o.overlayWindow.Dialog, o.position)
 
 		o.overlayWindow.Dialog.BoundsChanged().Attach(func() {
-			o.position = o.overlayWindow.Dialog.Bounds()
-			o.position.Y += 32
-			o.position.X += 8
+			// Native client pixels, not Bounds() (96-DPI DIPs).
+			o.position = clientScreenRectPixels(o.overlayWindow.Dialog)
 		})
 
-		flags := win.GetWindowLong(handle, win.GWL_EXSTYLE)
-		flags |= win.WS_EX_NOACTIVATE
-		flags |= win.WS_EX_TOPMOST
-		flags |= win.WS_EX_NOPARENTNOTIFY
-
-		win.SetWindowLong(handle, win.GWL_EXSTYLE, flags)
-
 		o.overlayWindow.Dialog.Closing().Once(func(canceled *bool, reason walk.CloseReason) {
+			o.position = clientScreenRectPixels(o.overlayWindow.Dialog)
 			o.captureConfig.OverlayPosition = o.position
 			_ = config.Write(o.captureConfig)
 			o.mode = ModeLive
@@ -152,12 +135,14 @@ func (o *Overlay) Show() {
 	}
 
 	if o.mode == ModeLive {
-		win.SetWindowPos(handle,
-			win.HWND_TOPMOST, int32(o.position.X), int32(o.position.Y), int32(o.position.Height), int32(o.position.Width),
-			win.SWP_NOACTIVATE|win.SWP_NOMOVE|win.SWP_NOSIZE)
-		o.overlayWindow.Dialog.SetBoundsPixels(o.position)
-		o.overlayWindow.Dialog.SetMinMaxSizePixels(walk.Size{Width: o.position.Width - 16, Height: o.position.Height - 40}, walk.Size{Width: o.position.Width - 16, Height: o.position.Height - 40})
-		// o.overlayWindow.SetBounds(o.position)
+		stripLiveChrome(handle)
+		applyOverlayExStyle(handle)
+		win.SetWindowPos(handle, win.HWND_TOPMOST, 0, 0, 0, 0,
+			win.SWP_NOACTIVATE|win.SWP_NOMOVE|win.SWP_NOSIZE|win.SWP_FRAMECHANGED)
+
+		setClientScreenRectPixels(o.overlayWindow.Dialog, o.position)
+		sz := walk.Size{Width: o.position.Width, Height: o.position.Height}
+		_ = o.overlayWindow.Dialog.SetMinMaxSizePixels(sz, sz)
 
 		closeAction := walk.NewAction()
 		closeAction.SetText("Close")
@@ -198,20 +183,65 @@ func (o *Overlay) Show() {
 		menu.Actions().Add(closeAction)
 
 		o.overlayWindow.Dialog.SetContextMenu(menu)
-
-		flag := win.GetWindowLong(handle, win.GWL_STYLE) // Gets current style
-		flag |= win.WS_OVERLAPPED                        // always on top
-		flag &= ^win.WS_SIZEBOX
-		flag &= ^win.WS_CAPTION
-		win.SetWindowLong(handle, win.GWL_STYLE, flag)
-
-		flag2 := win.GetWindowLong(handle, win.GWL_EXSTYLE)
-		flag2 |= win.WS_EX_NOACTIVATE
-		flag2 |= win.WS_EX_TOPMOST
-		flag2 |= win.WS_EX_NOPARENTNOTIFY
-
-		win.SetWindowLong(handle, win.GWL_EXSTYLE, flag2)
 	}
 
 	o.overlayWindow.Dialog.Run()
+}
+
+func applyOverlayExStyle(hwnd win.HWND) {
+	flags := win.GetWindowLong(hwnd, win.GWL_EXSTYLE)
+	flags |= win.WS_EX_NOACTIVATE
+	flags |= win.WS_EX_TOPMOST
+	flags |= win.WS_EX_NOPARENTNOTIFY
+	win.SetWindowLong(hwnd, win.GWL_EXSTYLE, flags)
+}
+
+func stripLiveChrome(hwnd win.HWND) {
+	style := win.GetWindowLong(hwnd, win.GWL_STYLE)
+	style |= win.WS_OVERLAPPED
+	style &^= win.WS_SIZEBOX
+	style &^= win.WS_CAPTION
+	win.SetWindowLong(hwnd, win.GWL_STYLE, style)
+}
+
+// clientScreenRectPixels is the dialog client area in native screen pixels.
+// OverlayPosition must stay in this space — walk.Bounds() is 96-DPI DIPs.
+func clientScreenRectPixels(dlg *walk.Dialog) walk.Rectangle {
+	cb := dlg.ClientBoundsPixels()
+	origin := win.POINT{}
+	if !win.ClientToScreen(dlg.Handle(), &origin) {
+		return walk.Rectangle{Width: cb.Width, Height: cb.Height}
+	}
+
+	return walk.Rectangle{
+		X:      int(origin.X),
+		Y:      int(origin.Y),
+		Width:  cb.Width,
+		Height: cb.Height,
+	}
+}
+
+func chromeInsetsPixels(dlg *walk.Dialog) (left, top, right, bottom int) {
+	outer := dlg.BoundsPixels()
+	client := clientScreenRectPixels(dlg)
+	left = client.X - outer.X
+	top = client.Y - outer.Y
+	right = outer.Width - client.Width - left
+	bottom = outer.Height - client.Height - top
+
+	return
+}
+
+func setClientScreenRectPixels(dlg *walk.Dialog, client walk.Rectangle) {
+	if client.Width <= 0 || client.Height <= 0 {
+		return
+	}
+
+	left, top, right, bottom := chromeInsetsPixels(dlg)
+	win.SetWindowPos(dlg.Handle(), win.HWND_TOPMOST,
+		int32(client.X-left),
+		int32(client.Y-top),
+		int32(client.Width+left+right),
+		int32(client.Height+top+bottom),
+		win.SWP_NOACTIVATE)
 }
