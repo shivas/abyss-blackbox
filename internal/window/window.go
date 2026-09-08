@@ -24,7 +24,7 @@ var (
 )
 
 var SupportedWindowsFilter = func(w details) bool {
-	return !w.dx12 && w.language == "en"
+	return w.language == "en"
 }
 
 func NewManager() (*Manager, error) {
